@@ -1,0 +1,6 @@
+[submodule "iit-academic-portal-service"]
+	path = iit-academic-portal-service
+	url = https://github.com/tayabur-masud/iit-academic-portal.git
+[submodule "iit-academic-portal"]
+	path = iit-academic-portal
+	url = https://github.com/tayabur-masud/iit-academic-portal.git
