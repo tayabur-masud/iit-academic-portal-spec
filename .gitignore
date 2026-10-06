@@ -1,0 +1,57 @@
+# =========================================================
+# Spec Kit / Project Root
+# =========================================================
+
+# Local environment / configuration
+.env
+.env.*
+!.env.example
+
+# Local AI/tool configuration
+.claude/
+.copilot/
+.cursor/
+
+# Local IDE/editor settings
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Local development files
+.local/
+.cache/
+.tmp/
+temp/
+
+# =========================================================
+# Generated / local Spec artifacts
+# =========================================================
+
+# Uncomment only if these are generated locally
+# and should NOT be committed.
+#
+# .specify/local/
+# .specify/cache/
+
+# =========================================================
+# Submodule local files
+# =========================================================
+
+# Frontend and backend have their own .gitignore files.
+# Do NOT ignore the entire submodule directories here.
