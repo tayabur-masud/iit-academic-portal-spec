@@ -1,0 +1,262 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "IIT Academic Portal Authentication Contract",
+    "version": "1.0.0",
+    "description": "Proposed browser-facing contract for email/password authentication, role context, logout, and password recovery. Match existing API versioning and error conventions before implementation."
+  },
+  "servers": [
+    { "url": "/" }
+  ],
+  "paths": {
+    "/api/auth/anti-forgery-token": {
+      "get": {
+        "operationId": "getAntiForgeryToken",
+        "summary": "Obtain a request token for browser state-changing requests",
+        "responses": {
+          "200": {
+            "description": "A request token is returned; the matching anti-forgery cookie is set by the service.",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Protected anti-forgery cookie; never use this cookie as an authentication credential.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AntiForgeryToken" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/sessions": {
+      "post": {
+        "operationId": "createSession",
+        "summary": "Authenticate by email and password and create a browser session",
+        "security": [{ "antiForgery": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SignInRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Session created. A protected session cookie is set. A multi-role account receives a null active role until it selects one.",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Protected session cookie. The server applies no idle or maximum-age timeout; explicit logout or session revocation ends the server session. Browser cookie removal can remove the client's ability to resume it.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SessionContext" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": {
+            "description": "Invalid credentials; response does not distinguish an unknown email from an incorrect password.",
+            "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } } }
+          },
+          "429": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/auth/sessions/current": {
+      "get": {
+        "operationId": "getCurrentSession",
+        "summary": "Get the authenticated user's current role context",
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Current account roles and this session's active role. A role no longer assigned to the account is omitted, and a removed active role is returned as null.",
+            "headers": {
+              "Set-Cookie": {
+                "description": "The session cookie is re-issued with a fresh browser lifetime so an actively used browser never reaches its cookie-lifetime cap. The server session itself has no expiry.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SessionContext" } } }
+          },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      },
+      "delete": {
+        "operationId": "revokeCurrentSession",
+        "summary": "Sign out and revoke only the current session",
+        "security": [{ "sessionCookie": [], "antiForgery": [] }],
+        "responses": {
+          "204": { "description": "Current session revoked and session cookie cleared." },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/auth/sessions/current/active-role": {
+      "put": {
+        "operationId": "setActiveRole",
+        "summary": "Select or switch to a role assigned to the current account",
+        "security": [{ "sessionCookie": [], "antiForgery": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActiveRoleRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Active role updated for this session only.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SessionContext" } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "description": "Requested role is not currently assigned to the account.", "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } } } }
+        }
+      }
+    },
+    "/api/auth/password-reset-requests": {
+      "post": {
+        "operationId": "requestPasswordReset",
+        "summary": "Request password-recovery instructions",
+        "security": [{ "antiForgery": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PasswordResetRequest" } } }
+        },
+        "responses": {
+          "202": {
+            "description": "Same public response for recognized and unrecognized email addresses.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericResetAccepted" } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/auth/password-resets": {
+      "post": {
+        "operationId": "completePasswordReset",
+        "summary": "Set a replacement password using a valid recovery proof",
+        "security": [{ "antiForgery": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PasswordResetCompletion" } } }
+        },
+        "responses": {
+          "204": {
+            "description": "Password reset completed. Revoke only the session used for this reset; leave other sessions active.",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Clears the session cookie when the request carried a session (that session is revoked).",
+                "schema": { "type": "string" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-iit-session",
+        "description": "Protected browser session credential. HttpOnly, Secure, host-only, and no application idle or maximum-age expiration; validated against per-session server state."
+      },
+      "antiForgery": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token",
+        "description": "Request token paired with the anti-forgery cookie. Required for browser-originated state-changing requests."
+      }
+    },
+    "schemas": {
+      "Role": {
+        "type": "string",
+        "enum": ["Admin", "Student", "Teacher", "Coordinator"]
+      },
+      "AntiForgeryToken": {
+        "type": "object",
+        "required": ["requestToken"],
+        "properties": {
+          "requestToken": { "type": "string", "description": "Value to send in the X-CSRF-Token header." }
+        }
+      },
+      "SignInRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "minLength": 1, "writeOnly": true }
+        },
+        "additionalProperties": false
+      },
+      "SessionContext": {
+        "type": "object",
+        "required": ["availableRoles", "activeRole"],
+        "properties": {
+          "availableRoles": { "type": "array", "items": { "$ref": "#/components/schemas/Role" }, "uniqueItems": true },
+          "activeRole": { "type": ["string", "null"], "enum": ["Admin", "Student", "Teacher", "Coordinator", null] }
+        }
+      },
+      "ActiveRoleRequest": {
+        "type": "object",
+        "required": ["role"],
+        "properties": { "role": { "$ref": "#/components/schemas/Role" } },
+        "additionalProperties": false
+      },
+      "PasswordResetRequest": {
+        "type": "object",
+        "required": ["email"],
+        "properties": { "email": { "type": "string", "format": "email" } },
+        "additionalProperties": false
+      },
+      "GenericResetAccepted": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": { "type": "string", "const": "If an eligible account exists, recovery instructions will be sent to its registered email address." }
+        }
+      },
+      "PasswordResetCompletion": {
+        "type": "object",
+        "required": ["email", "proof", "newPassword"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "proof": { "type": "string", "writeOnly": true },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "pattern": "^(?=.*[A-Za-z])(?=.*[0-9]).{8,}$",
+            "writeOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "description": "User-safe problem response. Must not expose stack traces, account-existence distinctions, credentials, or internal details.",
+        "properties": {
+          "type": { "type": "string", "format": "uri-reference" },
+          "title": { "type": "string" },
+          "status": { "type": "integer" },
+          "detail": { "type": "string" },
+          "instance": { "type": "string", "format": "uri-reference" }
+        }
+      }
+    },
+    "responses": {
+      "Problem": {
+        "description": "Validation, authentication, authorization, or throttling error in a consistent problem format. Every state-changing operation returns 400 when the anti-forgery request token is missing or invalid.",
+        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } } }
+      }
+    }
+  }
+}
