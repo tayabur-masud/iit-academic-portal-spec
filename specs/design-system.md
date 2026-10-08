@@ -130,6 +130,8 @@ Forms MUST be easy to scan and use a consistent single-column layout unless a sh
 
 Help text MUST appear adjacent to its field and remain distinct from validation feedback. Validate on the server as well as in the interface. Identify invalid fields in text, associate the message programmatically, and provide a concise summary when a form has multiple errors. Validation messages MUST explain how to correct the value and MUST NOT rely on color alone. Do not show an error before the user has had a reasonable opportunity to provide the value, unless the error is an immediate security or format requirement.
 
+**Field error message:** place it directly below the control, in helper size, medium weight, and `--color-error`. Start it with a small error icon: a filled circle with an exclamation mark, 1em square, in the same error color. The icon sits on the first line of text, and wrapped lines align with the text, not the icon. The icon is decorative, so hide it from assistive technology; the message text carries the meaning. Do not use a bare "!" or other text symbol in its place. In the frontend, the shared `.field-error` class provides the icon.
+
 Disabled fields communicate unavailable actions and are skipped by normal keyboard interaction; read-only fields remain readable and selectable. Do not use disabled styling for data that users should still copy. Keep submit and cancel actions together in a consistent location, with one visually primary submit action. Prevent duplicate submissions and show progress without shifting the form layout.
 
 ## 8. Tables and Data-Dense Views
@@ -149,6 +151,20 @@ Role-specific navigation may expose different destinations, but must use the sam
 ## 10. Authentication UI
 
 Login, forgot-password, and password-reset screens MUST be focused, uncluttered, and visibly part of the IIT Academic Portal. Use the approved logo asset at its correct aspect ratio and the approved brand token; do not add unapproved decorative brand colors. Place the form in a clear content region with a prominent heading, persistent labels, readable help/error text, and one primary action.
+
+**Brand header:** every focused authentication screen (sign-in, forgot password, reset password, role selection, and page not found) opens with the same brand header:
+- The approved IIT logo (the "IIT" lettermark above a "University of Dhaka" bar, in brand primary on a white background), 80px tall at its original 600×327 aspect ratio. Never stretch or recolor it.
+- The text alternative "IIT, University of Dhaka".
+- "IIT Academic Portal" set in the heading size, semibold, in brand primary.
+- Both centered horizontally in the card, with 24px (`--spacing-6`) below the header.
+
+The page heading, form, and actions stay left-aligned for scanning. Implement the header once as a shared component rather than repeating it on each page.
+
+**Favicon and app icons:** derive them from the approved logo, without recoloring it or changing its proportions.
+- **Browser tab** (`favicon.ico`, 16, 32, and 48px): the "IIT" lettermark only, cropped above the "University of Dhaka" bar because the bar text cannot be read at these sizes. Center it at 92% of the width on a white rounded square (corner radius 18%), which keeps it legible on light and dark browser chrome.
+- **Home screen** (`apple-touch-icon.png`, 180px): the full logo at 84% of the width on a square white tile. The platform applies its own corner mask.
+
+Regenerate both files whenever the logo changes.
 
 Show loading and validation states without moving controls unexpectedly. Authentication errors MUST be actionable and MUST NOT expose secrets or sensitive account-existence details. Password visibility controls, if provided, require accessible labels and state announcements. If a user can choose or switch among roles, present only the roles authorized for that user and clearly identify the active role; do not imply that a UI selection grants permission.
 
@@ -201,6 +217,8 @@ At all sizes, prevent overlap, clipped labels, and unexpected horizontal page sc
 Implement tokens in one shared theme source and expose them as CSS custom properties. Components MUST consume semantic tokens, not palette values directly. The following token contract records the currently specified values; preserve the semantic token names when mapping them into the frontend's shared theme.
 
 The values are centralized here to prevent local component overrides and repeated hard-coded values.
+
+**Frontend implementation:** `iit-academic-portal/src/styles/tokens.css` declares these tokens, with the same names, as the Tailwind CSS v4 theme. Each token is therefore also a utility (`bg-brand-primary`, `p-4`, `rounded-md`, `md:`). Tailwind's default color palette is removed, so only the colors in this document compile. Change a value here and in that file together.
 
 ```css
 /* Confirmed brand values: primary #2E3192; secondary #4B4FB0. */
