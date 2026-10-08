@@ -1,3 +1,12 @@
+<!--
+Sync Impact Report
+Version change: 1.0.0 -> 1.1.0
+Modified principles: none
+Modified sections: Technical and Data Constraints (approved versions and major-version approval rule)
+Added sections: none
+Removed sections: none
+Follow-up TODOs: confirm the original ratification date.
+-->
 # IIT Academic Portal Constitution
 
 ## Core Principles
@@ -19,7 +28,16 @@ Business-critical rules MUST have appropriate automated tests, including unit te
 
 ## Technical and Data Constraints
 
-The intended technology stack is Angular, TypeScript, HTML, and CSS for the frontend; C# and ASP.NET Core Web API for the backend; Entity Framework Core with PostgreSQL for persistence; ASP.NET Core Identity for authentication and authorization; and pgvector for vector capability. The architecture is a layered monolith with RESTful APIs. Specifications and plans MUST prefer this stack and established project libraries. New frameworks, packages, dependencies, or architectural patterns require a clear benefit; dependencies MUST remain minimal and justified. Database and infrastructure implementation details MUST stay behind appropriate application boundaries.
+The approved technology stack is:
+
+- Frontend: Angular 21, TypeScript, HTML, and CSS.
+- Backend: ASP.NET Core 10 Web API with C# 14.
+- ORM: Entity Framework Core 10.
+- Authentication and authorization: ASP.NET Core Identity 10.
+- Database: PostgreSQL 18 with pgvector for vector capability.
+- Frontend runtime and tooling: Node.js 24 LTS.
+
+The architecture is a layered monolith with RESTful APIs. Specifications, plans, and implementations MUST use this stack and existing project libraries. Major framework versions MUST NOT be changed without explicit project-level approval. New frameworks, packages, dependencies, or architectural patterns require a clear benefit; dependencies MUST remain minimal and justified. Database and infrastructure implementation details MUST stay behind appropriate application boundaries.
 
 ## Delivery, Quality, and Change Control
 
@@ -33,4 +51,4 @@ This constitution is the governing standard for project specifications, plans, t
 
 Constitution versions use semantic versioning. Increment MAJOR for backward-incompatible principle removals or redefinitions, MINOR for new principles or materially expanded governance, and PATCH for clarifications or non-semantic edits. Every amendment MUST update the version and last-amended date; the ratification date remains the date of original adoption. If an original date cannot be verified, retain an explicit TODO until confirmed.
 
-**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): original adoption date unknown | **Last Amended**: 2026-10-06
+**Version**: 1.1.0 | **Ratified**: TODO(RATIFICATION_DATE): original adoption date unknown | **Last Amended**: 2026-10-08
