@@ -20,13 +20,13 @@ No major version deviates from the constitution. pgvector is not referenced beca
 
 | Decision | Reason |
 |---|---|
-| Custom `PortalSession` authentication handler over an `AuthSessions` table, not the Identity cookie | Per-session active role, single-session revocation, and no expiry. Identity's security-stamp cookie validation would revoke other sessions after a password reset. |
+| Custom `PortalSession` authentication handler over an `AuthSessions` table, not the Identity cookie | Per-session active role, single-session revocation, and a sliding three-hour inactivity timeout. Identity's security-stamp cookie validation would revoke other sessions after a password reset. |
 | Only the active role is issued as a role claim | Standard `RequireRole` policies then cannot grant the union of a multi-role user's roles. |
 | Active role re-checked against current assignments on every request (one query joins the session and the user's roles) | Removed assignments stop authorizing on the next request (FR-007, edge case "role assignment changes"). |
 | Recovery requests are queued and processed in the background | The response is identical in content and in timing for known and unknown emails (FR-015). |
 | Recovery proof lifetime defaults to **1 hour** (`PasswordRecovery:ProofLifespan`) | The spec says "short-lived" without a value. **Confirm this value with the project owner.** Proofs are single-use because Identity rotates the security stamp on reset. |
 | Unknown email at sign-in is verified against a dummy hash | The failure response and its timing match those for a wrong password. |
-| Signing in again from the same browser revokes the browser's previous session | A replaced cookie would otherwise leave an orphaned, never-expiring session. |
+| Signing in again from the same browser revokes the browser's previous session | A replaced cookie would otherwise leave an orphaned session until its idle timeout elapsed. |
 | Authentication and recovery endpoints are rate-limited to 10 requests per minute per client address (configurable) | The contract declares 429. The spec gives no limit, so the default is an assumption. |
 | Account lockout is not enabled | The spec does not ask for it. Lockouts that an administrator sets on an account are still honored. |
 | Record boundaries are expressed as `IStudentOwnedRecord`, `ITeacherAssignedRecord`, and `ICoordinatorAssignedRecord` with a `RecordAccess` policy | Course, batch, and result entities are out of scope. Future modules implement these interfaces, and the tests use stand-in records. |
@@ -64,7 +64,7 @@ Quickstart mapping:
 | 5 Recovery enumeration | `PasswordRecoveryTests` |
 | 6 Replacement-password validation | `PasswordRecoveryTests`, `PasswordPolicyTests`, `ResetPassword` spec |
 | 7 Session reset semantics | `PasswordRecoveryTests` |
-| 8 No automatic expiry | `SignInAndSignOutTests` (a session aged three years stays valid) |
+| 8 Three-hour inactivity timeout | `SignInAndSignOutTests` (authenticated activity refreshes the window; a session idle past three hours is revoked) |
 | 9 Logout and browser navigation | `SignInAndSignOutTests`, plus `Cache-Control: no-store` on API responses |
 | 10 Loading, validation, accessibility | `Login`, `ForgotPassword`, and `ResetPassword` specs |
 
@@ -111,9 +111,10 @@ Fixed during review:
 | Error responses | `ProblemDetails` everywhere, with no stack traces outside Development. Responses use `Cache-Control: no-store`. |
 | Transport | HTTPS redirection, plus HSTS outside Development. |
 
-**Accepted residual risk: sessions never expire.** Per FR-013, a session stays valid until the user signs out
-or it is revoked. A stolen or unattended device keeps access indefinitely. A password reset does not revoke
-the user's other sessions (FR-018), so resetting does not lock out an attacker who already holds a session.
+**Accepted residual risk: up to three hours of idle exposure.** Per FR-013, authenticated requests refresh the
+sliding inactivity window; a stolen or unattended device can remain usable until three hours after its last
+authenticated request. A password reset does not revoke the user's other sessions (FR-018), so resetting does
+not immediately lock out an attacker who already holds another active session.
 
 Mitigations in place:
 - Sign-out is always visible.
@@ -159,3 +160,12 @@ normalized emails to resolve.
 The development accounts were then seeded, and sign-in has written `AuthSessions` rows. `dotnet ef` reads the API
 project's configuration (`appsettings.Development.json` plus user secrets); there is no separate design-time
 connection string.
+
+## Session timeout update (2026-10-09)
+
+- Implemented a sliding three-hour inactivity timeout; each authenticated request updates `LastActivityAt` and reissues the cookie with a matching expiry.
+- Added API coverage for refreshing activity and revoking a session after three hours idle. Focused `SignInAndSignOutTests` passed: 9 passed, 0 failed, using an isolated artifacts directory because the running Debug API holds its output assemblies open.
+- Generated `20261008204920_SessionIdleTimeout`, which adds `LastActivityAt` and backfills existing rows from `CreatedAt`.
+- **Applied 2026-10-09** to the local PostgreSQL database. `dotnet ef migrations list` confirms both `InitialIdentityAndSessions` and `SessionIdleTimeout` are applied.
+- Restart the running API with the updated build before using it: the existing Debug process predates `LastActivityAt` and cannot create sessions against the migrated schema.
+- The full backend test suite and migration-script generation passed. Manual browser scenarios and security/release sign-off remain outstanding.

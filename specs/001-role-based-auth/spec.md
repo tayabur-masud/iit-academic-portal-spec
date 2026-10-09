@@ -8,6 +8,12 @@
 
 **Input**: User description: Define login, logout, password recovery, role-based access control, multiple assigned roles, and role switching for the IIT Academic Portal.
 
+## Clarifications
+
+### Session 2026-10-09
+
+- Q: Do you mean a 24-hour inactivity timeout or a 24-hour absolute maximum from sign-in? → A: Authenticated sessions expire after three hours without authenticated activity; each authenticated request refreshes the inactivity window.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Sign In and Sign Out (Priority: P1)
@@ -83,7 +89,7 @@ A user assigned more than one role can choose an active role after signing in an
 - A user has multiple assigned roles but no active role selected: do not expose role-protected content until an assigned role is active.
 - A recovery request uses an unknown identifier: show the same confirmation as for a recognized account.
 - A recovery proof is malformed, expired, previously used, or associated with a different account: reject it without changing credentials.
-- A password reset completes while other sessions may exist: revoke only the session used for the reset; leave other active sessions unchanged. Since sessions do not expire automatically, those sessions remain active until explicitly signed out or revoked.
+- A password reset completes while other sessions may exist: revoke only the session used for the reset; leave other sessions unchanged, subject to their independent three-hour inactivity timeout.
 - A user signs out and then uses browser navigation to revisit protected content: require authentication again and do not reveal cached protected data.
 - A role switch is attempted while the current page is not available under the target role: move to the target role's authorized landing experience.
 - Repeated form submission while an authentication or recovery action is processing: prevent duplicate processing and preserve clear progress feedback.
@@ -100,7 +106,7 @@ A user assigned more than one role can choose an active role after signing in an
 - When a user has multiple roles, the active role MUST limit the experience to that role's feature-list responsibilities; role switching MUST NOT combine the permissions of all assigned roles into an implicit broader role.
 - All supported roles MUST authenticate using an email address and password. Students MUST use the personal email address recorded for their account.
 - Password reset MUST revoke only the session used to complete the reset; other active sessions remain active.
-- Authenticated sessions MUST NOT expire automatically due to inactivity or elapsed time; they remain active until explicitly signed out or revoked by a specified security action.
+- An authenticated session MUST expire after three hours without authenticated activity. Each authenticated request MUST refresh the inactivity window; there is no separate maximum session age.
 - Unauthenticated users cannot access protected portal experiences. Hiding a control is not authorization.
 - Password recovery must not disclose whether an account exists.
 
@@ -120,7 +126,7 @@ A user assigned more than one role can choose an active role after signing in an
 - **FR-010**: A multi-role user MUST be able to switch among currently assigned roles while remaining the same authenticated user. The portal MUST identify the active role and update the authorized experience after a switch.
 - **FR-011**: If the active page is not authorized in the newly selected role, the portal MUST navigate to an authorized landing experience for that role.
 - **FR-012**: Signing out MUST end the current authenticated session, return the user to the unauthenticated experience, and require authentication before protected content can be viewed again.
-- **FR-013**: The portal MUST NOT automatically expire authenticated sessions due to inactivity or elapsed time. A session MUST remain active until explicitly signed out or revoked by a specified security action. A successful password reset MUST revoke only the session used to complete the reset; other active sessions MUST remain active.
+- **FR-013**: The portal MUST expire an authenticated session after three hours without authenticated activity. Each authenticated request MUST refresh the inactivity window, with no separate maximum session age. A successful password reset MUST revoke only the session used to complete the reset; other sessions MUST remain active subject to the inactivity timeout.
 
 #### Password recovery and reset
 
@@ -144,7 +150,7 @@ A user assigned more than one role can choose an active role after signing in an
 - **AC-001 - Sign-in**: For an eligible account, valid credentials establish an authenticated session; invalid credentials establish no session and produce generic feedback. Required fields, loading feedback, and duplicate-submission prevention are present. (FR-001–FR-005)
 - **AC-002 - Assigned roles and access**: A user can enter only a supported role currently assigned to the account. Each protected capability is allowed or denied according to the role and record boundaries in the approved feature list; direct unauthorized requests are denied without exposing protected content. (FR-006–FR-009)
 - **AC-003 - Role selection and switching**: A single-role user enters that role's context. A multi-role user can select and switch only among assigned roles, sees the active role, and is moved to an authorized landing experience when the current page is unavailable in the selected role. (FR-005–FR-011)
-- **AC-004 - Sign-out and session lifecycle**: Signing out ends the current authenticated session and blocks protected content afterward. Sessions do not expire automatically due to inactivity or elapsed time. After password reset, only the session used for reset is revoked; other active sessions remain active. (FR-012–FR-013, FR-018)
+- **AC-004 - Sign-out and session lifecycle**: Signing out ends the current authenticated session and blocks protected content afterward. Authenticated activity refreshes a three-hour inactivity window; a session idle for three hours is rejected. After password reset, only the session used for reset is revoked; other sessions remain active subject to their own inactivity windows. (FR-012–FR-013, FR-018)
 - **AC-005 - Password recovery and reset**: Recovery requests return the same confirmation for recognized and unrecognized identifiers. Only valid, unexpired, single-use recovery proof plus a replacement password of at least 8 characters containing a letter and a number can complete reset; rejected attempts leave the existing credential unchanged. (FR-014–FR-018)
 - **AC-006 - Feedback, validation, and security**: Authentication, recovery, and access-control states follow the design-system reference; user-controlled inputs are validated; messages reveal no secrets or account-existence information; security events are diagnosable without logging credentials or recovery proofs. (FR-019–FR-024)
 
@@ -154,7 +160,7 @@ A user assigned more than one role can choose an active role after signing in an
 - **Role assignment**: The relationship that grants a user membership in one supported role; the approved feature list defines the role's in-scope module and record boundaries.
 - **Active role context**: The assigned role currently selected for an authenticated user's interaction with the portal.
 - **Recovery proof**: A short-lived, single-use means delivered to the email address recorded for an account to verify authorization to replace its credential.
-- **Authenticated session**: The period during which the portal recognizes the user's authenticated identity and active role; it remains active until explicit sign-out or a specified revocation action and has no automatic timeout.
+- **Authenticated session**: The period during which the portal recognizes the user's authenticated identity and active role; it ends on explicit sign-out, specified revocation, or three hours without authenticated activity.
 
 ### Non-Functional Requirements
 
@@ -162,7 +168,7 @@ A user assigned more than one role can choose an active role after signing in an
 - The user experience MUST be usable with keyboard navigation and assistive technologies and meet the project design system's accessibility requirements.
 - Loading, success, validation, unauthorized, and error feedback MUST be understandable, timely, and consistent across supported screen sizes.
 - Authentication and recovery flows MUST not disclose credentials or account-existence information through visible messages.
-- Because sessions do not expire automatically, an explicit sign-out action MUST be readily available throughout authenticated experiences; users on shared devices must sign out to end their session.
+- An explicit sign-out action MUST be readily available throughout authenticated experiences; on shared devices, users should sign out rather than rely on the three-hour inactivity timeout.
 - Authentication and role behavior MUST be testable independently for each supported role, for users with multiple roles, and for unauthorized users.
 
 ### Out of Scope
@@ -183,6 +189,7 @@ A user assigned more than one role can choose an active role after signing in an
 - **SC-003**: 100% of password-recovery tests for unknown identifiers return the same user-facing confirmation as recognized identifiers.
 - **SC-004**: 100% of tests using invalid, expired, or already-used recovery proof leave the existing credential unchanged.
 - **SC-005**: At least 95% of representative multi-role usability-test participants can select or switch to an assigned role and identify the active role without assistance.
+- **SC-006**: 100% of session-lifecycle tests refresh a session on authenticated activity and reject it at or after three hours without activity.
 
 ## Assumptions
 
@@ -192,4 +199,4 @@ A user assigned more than one role can choose an active role after signing in an
 - The project design system at `specs/design-system.md` is the source of truth for authentication and access-control presentation.
 - Students use their personal email address recorded for the account; other roles use their recorded account email address for email/password sign-in.
 - Password-recovery instructions are delivered to the email address recorded for the account.
-- Authenticated sessions do not automatically expire due to inactivity or elapsed time. Password reset revokes only the session used for reset; users end other sessions through explicit sign-out.
+- Authenticated sessions use a sliding three-hour inactivity timeout with no separate maximum age. Password reset revokes only the session used for reset; other sessions remain subject to their own inactivity timeout.

@@ -49,7 +49,7 @@
             "description": "Session created. A protected session cookie is set. A multi-role account receives a null active role until it selects one.",
             "headers": {
               "Set-Cookie": {
-                "description": "Protected session cookie. The server applies no idle or maximum-age timeout; explicit logout or session revocation ends the server session. Browser cookie removal can remove the client's ability to resume it.",
+                "description": "Protected session cookie with a sliding three-hour expiry, refreshed on authenticated requests. The server rejects and revokes the session after three hours without authenticated activity; there is no separate maximum-age timeout.",
                 "schema": { "type": "string" }
               }
             },
@@ -75,10 +75,10 @@
         "security": [{ "sessionCookie": [] }],
         "responses": {
           "200": {
-            "description": "Current account roles and this session's active role. A role no longer assigned to the account is omitted, and a removed active role is returned as null.",
+            "description": "Current account roles and this session's active role. Authenticated activity refreshes the three-hour inactivity window. A role no longer assigned to the account is omitted, and a removed active role is returned as null.",
             "headers": {
               "Set-Cookie": {
-                "description": "The session cookie is re-issued with a fresh browser lifetime so an actively used browser never reaches its cookie-lifetime cap. The server session itself has no expiry.",
+                "description": "The session cookie is re-issued with a fresh three-hour lifetime. The session expires after three hours without authenticated activity.",
                 "schema": { "type": "string" }
               }
             },
@@ -168,7 +168,7 @@
         "type": "apiKey",
         "in": "cookie",
         "name": "__Host-iit-session",
-        "description": "Protected browser session credential. HttpOnly, Secure, host-only, and no application idle or maximum-age expiration; validated against per-session server state."
+        "description": "Protected browser session credential. HttpOnly, Secure, host-only, and sliding three-hour inactivity expiration; validated against per-session server state. No separate maximum age is applied."
       },
       "antiForgery": {
         "type": "apiKey",

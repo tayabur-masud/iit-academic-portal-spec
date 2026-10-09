@@ -6,7 +6,7 @@
 ## Prerequisites
 
 - Frontend and service source repositories checked out using Angular 21 with Node.js 24 LTS, and ASP.NET Core 10 Web API / C# 14 with ASP.NET Core Identity 10 and EF Core 10. Use a compatible Npgsql EF Core provider 10.x.
-- PostgreSQL 18 development database configured with pgvector where required by the application, and the service's reviewed migrations applied. If the session store is new, apply its version-controlled migration.
+- PostgreSQL 18 development database configured with pgvector where required by the application, and the service's reviewed migrations applied, including `SessionIdleTimeout` for the persisted last-activity timestamp.
 - Source lives in the `iit-academic-portal/` (Angular) and `iit-academic-portal-service/` (ASP.NET Core) submodules; each README has the full setup.
 - A development email sink or test mailbox connected for password-recovery messages. In Development the service writes each message as an `.eml` file to `src/IitAcademicPortal.Api/.mail/`. Do not use real user credentials or email reset links in shared logs.
 - Test accounts for Admin, Student, Teacher, and Coordinator, plus one account assigned Teacher and Coordinator. The Student test account uses a personal email address. In Development, set `DevelopmentSeed:Password` in user secrets and restart the service to create `admin@iit.test`, `student.personal@example.test`, `teacher@iit.test`, `coordinator@iit.test`, and `teacher.coordinator@iit.test`.
@@ -50,7 +50,7 @@ For the API smoke checks below, use Swagger UI. It sends the session cookie auto
 5. **Password recovery enumeration**: Request a reset for a known email and an unknown email. Confirm the same HTTP status and public response body for both. For the known test mailbox, follow the one-use recovery proof.
 6. **Replacement-password validation**: Try a password shorter than eight characters, one without a letter, and one without a number; each must be rejected without changing the credential. A password meeting all three requirements may complete reset.
 7. **Session reset semantics**: Establish sessions for the same test account in two separate browsers. Complete reset in the first browser. Confirm only that session is revoked, the other session remains active as specified, and the reset proof cannot be reused.
-8. **No automatic session expiry**: Establish a session and leave it idle beyond any normal framework default timeout. Confirm it remains usable until explicit logout or an authorized revocation action. This test confirms the user-approved persistent-session policy and must be included in the security review.
+8. **Three-hour inactivity timeout**: Establish a session and make an authenticated request within three hours; confirm the session and cookie lifetime are refreshed. Then leave a separate session idle for three hours; confirm the next protected request is rejected, the stale cookie is cleared, and only that session is revoked.
 9. **Logout and browser navigation**: Sign out, then revisit a protected route and directly request a protected resource. Confirm both require authentication and cached protected information is not exposed.
 10. **Loading, validation, and accessibility**: Submit each asynchronous form slowly or with a test delay. Confirm progress is announced, duplicate submission is prevented, field errors are associated with inputs, keyboard navigation works, and focus remains visible in supported responsive layouts.
 

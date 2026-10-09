@@ -44,9 +44,9 @@ description: "Implementation tasks for role-based authentication and access cont
 **Checkpoint**: Do not start user-story implementation until source paths are confirmed, current Identity data is inspected, and the per-session authorization boundary is agreed with the design artifacts.
 
 - [X] T004 Inspect the existing Identity schema and migration history in `iit-academic-portal-service/`; preserve “Normalized email: Unique across accounts so sign-in resolves to one account” and “Each user-role pair MUST be unique”; check for duplicate normalized email values before adding a constraint, and reuse existing Identity tables rather than recreating them.
-- [X] T005 Add or adapt the minimal per-session persistence model in the existing service data layer in `iit-academic-portal-service/`; preserve these `data-model.md` constraints verbatim: “Session ID: Unique; raw bearer material is not stored in the database”; “Session handle digest: Unique; compare in constant time where applicable”; “User ID: Required; references one user account”; “Active role: Nullable only while a multi-role user is choosing a role; when set, it MUST be assigned to the user”; “Created at: Required for security diagnosis; not used as an automatic expiry cutoff”; “Revoked at: Null while active”; and “Revocation reason: Logout, password reset of this session, or another approved security action; Must not contain credentials or reset proofs”.
+- [X] T005 Add or adapt the minimal per-session persistence model in the existing service data layer in `iit-academic-portal-service/`; preserve the `data-model.md` constraints for session ID, handle digest, user, active role, creation time, last authenticated activity, revocation time, and revocation reason. Initialize `LastActivityAt` at session creation and refresh it on authenticated requests.
 - [X] T006 Create a version-controlled EF Core 10 migration in the existing migrations path under `iit-academic-portal-service/` only if T004 finds that the per-session state is missing; include required user/role references, unique constraints, and revocation fields without duplicating Identity schema.
-- [X] T007 Integrate protected session-cookie validation with the existing Identity/service authentication boundary in `iit-academic-portal-service/`; keep active role per session, validate that it remains assigned on protected requests, implement explicit logout/revocation, and do not add idle or maximum-age expiration.
+- [X] T007 Integrate protected session-cookie validation with the existing Identity/service authentication boundary in `iit-academic-portal-service/`; keep active role per session, validate current role assignment on protected requests, refresh the sliding three-hour inactivity window, expire idle sessions, and implement explicit logout/revocation.
 - [X] T008 Configure the existing service request protections and error/logging conventions in `iit-academic-portal-service/`; require anti-forgery protection for cookie-authenticated state changes, return consistent user-safe errors, and exclude passwords, cookie values, session handles, and reset proofs from logs.
 
 ---
@@ -59,7 +59,7 @@ description: "Implementation tasks for role-based authentication and access cont
 
 ### Tests for User Story 1
 
-- [X] T009 [P] [US1] Add service API tests in the existing test project under `iit-academic-portal-service/` for valid login, wrong password, unknown email, generic failure equivalence, cookie/session creation, and no automatic session timeout using disposable accounts.
+- [X] T009 [P] [US1] Add service API tests in the existing test project under `iit-academic-portal-service/` for valid login, wrong password, unknown email, generic failure equivalence, cookie/session creation, sliding activity refresh, and revocation after three hours idle using disposable accounts.
 - [X] T010 [P] [US1] Add Angular tests in the existing test project under `iit-academic-portal/` for required email/password fields, generic login failure, loading feedback, duplicate-submit prevention, and explicit logout visibility.
 
 ### Implementation for User Story 1
@@ -68,7 +68,7 @@ description: "Implementation tasks for role-based authentication and access cont
 - [X] T012 [US1] Implement the login form and sign-in/loading/validation/error states in the existing Angular source files under `iit-academic-portal/`, using `specs/design-system.md` tokens and preserving the email but not the password after a safe validation failure.
 - [X] T013 [US1] Implement current-session logout and the explicit sign-out action in the existing service and Angular source files under `iit-academic-portal-service/` and `iit-academic-portal/`; confirm logout revokes only the current session and protected navigation/API access is rejected afterward.
 
-**Checkpoint**: US1 works independently for valid/invalid credentials and explicit logout; the session remains valid until explicit logout/revocation.
+**Checkpoint**: US1 works independently for valid/invalid credentials and explicit logout; authenticated requests refresh the sliding three-hour inactivity window.
 
 ---
 
@@ -138,7 +138,7 @@ description: "Implementation tasks for role-based authentication and access cont
 
 - [X] T026 [P] Run the existing Angular 21/Node.js 24 and .NET 10 test/build commands discovered in T001-T003 and record results against `specs/001-role-based-auth/quickstart.md`.
 - [X] T027 [P] Review login, recovery, reset, role selection/switching, unauthorized, and not-found states against WCAG 2.2 AA and `specs/design-system.md` in `iit-academic-portal/`.
-- [X] T028 Review session lifetime, persistent-cookie/CSRF protections, current-role checks, reset revocation, and secret-free logging in `iit-academic-portal-service/`; explicitly document the accepted no-timeout residual risk before release.
+- [X] T028 Review three-hour inactivity enforcement, sliding-cookie/CSRF protections, current-role checks, reset revocation, and secret-free logging in `iit-academic-portal-service/`; document the remaining unattended-device risk for security sign-off.
 - [X] T029 Compare implemented routes, request/response schemas, and error behavior with `specs/001-role-based-auth/contracts/authentication.openapi.json`; update the contract or implementation owner’s documentation for approved differences.
 - [X] T030 Confirm PostgreSQL 18/Npgsql EF Core 10 compatibility, migration behavior, and normalized-email uniqueness using the actual service schema in `iit-academic-portal-service/`; document whether the session-state migration was applied.
   - **Done (2026-10-08)**: The migration is applied to the local PostgreSQL 18.3 database. A unique `EmailIndex` is on `NormalizedEmail`. Sign-in has created session rows. See [implementation-notes.md](implementation-notes.md#database-t030).
@@ -194,7 +194,7 @@ Task T012: login form and validation/loading states in the existing Angular sour
 2. Complete Phase 2 foundational Identity/session/error protections.
 3. Complete Phase 3 (US1) sign-in and logout.
 4. Validate US1 independently using `specs/001-role-based-auth/quickstart.md`.
-5. Do not release the MVP without logout, session security, and server-side protection; sessions intentionally have no automatic expiry.
+5. Do not release the MVP without logout, session security, and server-side protection; verify the three-hour inactivity timeout and its sliding refresh behavior.
 
 ### Incremental Delivery
 
@@ -208,3 +208,14 @@ Task T012: login form and validation/loading states in the existing Angular sour
 ### Parallel Team Strategy
 
 After Phase 2, assign US1 and US2 to separate workers against the agreed contract; US3 may proceed in parallel once Identity/email foundations are ready. Start US4 only after the shared authenticated-session and authorization boundaries are stable.
+
+## Phase 7: Convergence
+
+**Purpose**: Close remaining implementation, platform-constraint, and release-validation gaps found by comparing the current code with the spec, plan, and design system.
+
+- [X] T031 Implement the approved three-hour sliding inactivity policy by persisting and refreshing `LastActivityAt`, revoking idle sessions, aligning the cookie lifetime and API contract, and adding boundary tests per FR-013 (contradicts)
+- [ ] T032 Complete the manual browser pass for quickstart scenarios 1–10 across the existing Angular and service submodules, and record each result in `specs/001-role-based-auth/implementation-notes.md` per `quickstart.md` scenarios 1–10 (partial)
+- [ ] T033 Obtain explicit security/release-owner sign-off for the residual risk of sessions remaining usable for up to three hours after their last authenticated request, and record approval in `specs/001-role-based-auth/implementation-notes.md` per `plan.md` post-design security gate (missing)
+- [ ] T034 Verify authentication and role-switch layouts at every supported breakpoint and at 200% zoom, record findings in `specs/001-role-based-auth/implementation-notes.md`, and fix any overflow or clipped controls in the existing Angular auth/shell files per design-system Sections 13–14 (partial)
+- [ ] T035 Run a screen-reader pass over login, recovery, reset, role selection/switching, unauthorized, and not-found experiences; record findings and remediate defects in the existing Angular auth/shell files per FR-020 and design-system Section 13 (missing)
+- [ ] T036 Obtain project-owner approval for the configured one-hour password-recovery proof lifetime or change it to the approved duration in `iit-academic-portal-service/src/IitAcademicPortal.Application/PasswordRecovery/PasswordRecoveryOptions.cs`; update `specs/001-role-based-auth/implementation-notes.md` and verify expiry/replay behavior in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/PasswordRecoveryTests.cs` per FR-017 (partial)

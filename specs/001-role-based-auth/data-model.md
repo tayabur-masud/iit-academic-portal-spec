@@ -10,7 +10,7 @@
 - The supported role catalog is Admin, Student, Teacher, and Coordinator. Role-specific capabilities and record boundaries come from the approved feature list.
 - Keep the active role per authenticated session, not as a user-wide property. A user's assigned roles and active role are separate concepts.
 - Store server-side session state so individual sessions can be revoked and so active-role state is authoritative. Do not persist a raw session secret.
-- Do not add automatic session-expiration or last-activity timeout fields. The approved policy keeps sessions active until explicit logout or a specified revocation action.
+- Store the last authenticated activity timestamp for each session. Sessions expire after three hours without authenticated activity; authenticated requests refresh this timestamp.
 - Use Identity's password hash and reset-token facilities. Do not store plaintext passwords, raw reset proofs, or a duplicate credential table.
 
 ## Logical Entities
@@ -48,10 +48,11 @@ Represents one independently revocable authenticated browser session.
 | User ID | Owning account | Required; references one user account |
 | Active role | Current role context for this session | Nullable only while a multi-role user is choosing a role; when set, it MUST be assigned to the user |
 | Created at | Session creation time | Required for security diagnosis; not used as an automatic expiry cutoff |
+| Last activity at | Time of the most recent authenticated request | Required; initialized to Created at and refreshed on each authenticated request; a session expires when this time is three hours old |
 | Revoked at | Time this session was explicitly invalidated | Null while active |
-| Revocation reason | Logout, password reset of this session, or another approved security action | Must not contain credentials or reset proofs |
+| Revocation reason | Logout, password reset of this session, idle timeout, or another approved security action | Must not contain credentials or reset proofs |
 
-There is deliberately no automatic `ExpiresAt`, idle-timeout, or maximum-age field. If the current service already provides suitable per-session state, reuse it rather than adding duplicate storage.
+The session has no separate absolute maximum age. The server checks the persisted activity timestamp on every authenticated request and records idle expiration as a revocation with reason `IdleTimeout`.
 
 ### Recovery Proof
 
@@ -67,7 +68,7 @@ A short-lived, single-use proof generated and validated by the configured Identi
 - Role switching changes only the current session's active role. It does not alter the user's assignments or other sessions.
 - Explicit logout revokes only the current session.
 - Password reset revokes only the session used to complete reset. Other sessions remain active, including across the credential change, as explicitly required.
-- Sessions do not expire automatically due to inactivity or elapsed time. A user on a shared device must explicitly sign out.
+- Authenticated activity refreshes the session's sliding three-hour inactivity window. A user on a shared device should explicitly sign out rather than rely on idle expiration.
 - Authentication and recovery errors, password hashes, cookie values, session handles, and reset proofs MUST NOT be written to application logs.
 
 ## Session State Transitions
@@ -77,7 +78,7 @@ A short-lived, single-use proof generated and validated by the configured Identi
 3. **Role switched**: selecting another assigned role updates only the current session. If the current location is unavailable under the new role, the user moves to that role's authorized landing experience.
 4. **Revoked**: explicit logout or password reset of this session marks only this session revoked. A revoked session cannot access protected capabilities.
 
-There is no time-based transition to an expired state.
+5. **Expired**: a protected request arrives at or after three hours since `LastActivityAt`; the server revokes that session with reason `IdleTimeout`, rejects the request, and clears the stale cookie.
 
 ## Persistence and Migration Impact
 
@@ -85,8 +86,10 @@ The existing service's Identity schema and migrations are not present in this pl
 
 *Outcome (2026-10-08):* no existing schema existed. The `InitialIdentityAndSessions` migration creates:
 - the Identity tables
-- an `AuthSessions` table (`Id`, `HandleDigest` unique, `UserId` foreign key with cascade, `ActiveRole`, `CreatedAt`, `RevokedAt`, `RevocationReason`; no expiry column)
+- an `AuthSessions` table (`Id`, `HandleDigest` unique, `UserId` foreign key with cascade, `ActiveRole`, `CreatedAt`, `RevokedAt`, `RevocationReason`; the initial schema predates `LastActivityAt`)
 - a unique `EmailIndex` on `NormalizedEmail`
 - the four seeded roles
 
 It is applied on PostgreSQL 18.3.
+
+*Update (2026-10-09):* `SessionIdleTimeout` adds required `LastActivityAt`, backfilled from `CreatedAt` for existing rows. Apply this migration to PostgreSQL before running the updated service.
