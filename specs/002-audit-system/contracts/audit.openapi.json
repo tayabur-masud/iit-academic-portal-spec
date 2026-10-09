@@ -1,0 +1,437 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "IIT Academic Portal Audit Review API",
+    "version": "1.0.0",
+    "description": "Read-only API contract for authorized Admin users to search and inspect immutable audit events. Event writes are internal server-side application operations and are not exposed as client endpoints. Any other HTTP method on these routes returns 405 with an Allow: GET header and is recorded as an audit.mutation.attempted security event; anonymous requests receive 401."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Audit events",
+      "description": "Admin-only read access to formal audit history."
+    }
+  ],
+  "paths": {
+    "/api/audit-events": {
+      "description": "GET-only collection. Unsupported methods return 405 Method Not Allowed with Allow: GET for authenticated sessions and record an audit.mutation.attempted security event; anonymous requests return 401 without an audit event.",
+      "get": {
+        "tags": [
+          "Audit events"
+        ],
+        "operationId": "searchAuditEvents",
+        "summary": "Search audit events",
+        "description": "Requires an authenticated session whose active role is Admin. The service rechecks the current active role on every request. Start time is inclusive; end time is exclusive. Results are ordered by occurredAtUtc descending, then eventId descending. Each successful search is itself recorded as an audit.review.accessed security event.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/FromUtc"
+          },
+          {
+            "$ref": "#/components/parameters/ToUtc"
+          },
+          {
+            "$ref": "#/components/parameters/ActorUserId"
+          },
+          {
+            "$ref": "#/components/parameters/Category"
+          },
+          {
+            "$ref": "#/components/parameters/EventType"
+          },
+          {
+            "$ref": "#/components/parameters/EntityType"
+          },
+          {
+            "$ref": "#/components/parameters/EntityId"
+          },
+          {
+            "$ref": "#/components/parameters/Outcome"
+          },
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Filtered audit events and an optional cursor for the next page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditEventPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/audit-events/{eventId}": {
+      "description": "GET-only resource. Unsupported methods return 405 Method Not Allowed with Allow: GET for authenticated sessions and record an audit.mutation.attempted security event; anonymous requests return 401 without an audit event.",
+      "get": {
+        "tags": [
+          "Audit events"
+        ],
+        "operationId": "getAuditEvent",
+        "summary": "Get an audit event",
+        "description": "Requires an authenticated session whose active role is Admin. The service rechecks the current active role on every request. The endpoint is read-only. Each successful view is itself recorded as an audit.review.accessed security event.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The safe, immutable audit event detail.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditEvent"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-iit-session",
+        "description": "Existing protected session cookie. Authorization requires the current session's active role to be Admin; assigned roles or client-supplied role values do not grant access."
+      }
+    },
+    "parameters": {
+      "FromUtc": {
+        "name": "fromUtc",
+        "in": "query",
+        "description": "Inclusive UTC lower bound.",
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "ToUtc": {
+        "name": "toUtc",
+        "in": "query",
+        "description": "Exclusive UTC upper bound.",
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "ActorUserId": {
+        "name": "actorUserId",
+        "in": "query",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Category": {
+        "name": "category",
+        "in": "query",
+        "schema": {
+          "$ref": "#/components/schemas/AuditCategory"
+        }
+      },
+      "EventType": {
+        "name": "eventType",
+        "in": "query",
+        "description": "Extensible, namespaced event type.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "EntityType": {
+        "name": "entityType",
+        "in": "query",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "EntityId": {
+        "name": "entityId",
+        "in": "query",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Outcome": {
+        "name": "outcome",
+        "in": "query",
+        "schema": {
+          "$ref": "#/components/schemas/AuditOutcome"
+        }
+      },
+      "CorrelationId": {
+        "name": "correlationId",
+        "in": "query",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "PageSize": {
+        "name": "pageSize",
+        "in": "query",
+        "description": "Defaults to 25; maximum 100.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 25
+        }
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "description": "Opaque keyset cursor returned by the preceding page.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "schemas": {
+      "AuditCategory": {
+        "type": "string",
+        "enum": [
+          "business",
+          "security"
+        ]
+      },
+      "AuditOutcome": {
+        "type": "string",
+        "enum": [
+          "success",
+          "failure",
+          "denied"
+        ]
+      },
+      "AuditEvent": {
+        "type": "object",
+        "required": [
+          "eventId",
+          "occurredAtUtc",
+          "category",
+          "eventType",
+          "outcome"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "category": {
+            "$ref": "#/components/schemas/AuditCategory"
+          },
+          "eventType": {
+            "type": "string",
+            "description": "Namespaced event type, for example auth.sign-in, access.denied, audit.review.accessed."
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/AuditOutcome"
+          },
+          "actorUserId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stable actor identifier. Null for unauthenticated or system activity and for failed sign-ins."
+          },
+          "entityType": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "entityId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "correlationId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Client IP address derived by the server from trusted forwarded headers."
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Only safe values approved for this event type. Must not contain credentials, tokens, cookies, reset proofs, or non-allowlisted personal data.",
+            "additionalProperties": true
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditChange"
+            }
+          },
+          "actorDisplay": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Email of the actor's account resolved when the event is viewed; null when the actor is null or the account no longer exists. Never stored in the event."
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuditChange": {
+        "type": "object",
+        "required": [
+          "fieldName"
+        ],
+        "properties": {
+          "fieldName": {
+            "type": "string"
+          },
+          "oldValue": {
+            "type": [
+              "string",
+              "number",
+              "integer",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "newValue": {
+            "type": [
+              "string",
+              "number",
+              "integer",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "changed": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuditEventPage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEvent"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "description": "User-safe problem response with no internal details or protected audit content.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "format": "uri-reference"
+          }
+        }
+      }
+    },
+    "responses": {
+      "Problem": {
+        "description": "A user-safe problem response.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      }
+    }
+  }
+}

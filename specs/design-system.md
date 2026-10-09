@@ -115,7 +115,7 @@ All components MUST have consistent dimensions, typography, spacing, focus treat
 | Confirmation dialog | Confirm destructive or irreversible action. State the consequence plainly and name the affected item when possible. Make cancel easy to choose; label the destructive action explicitly and do not rely on color alone. |
 | Alerts | Keep persistent or page-level feedback visible in context. Use a semantic icon, concise heading/message, and optional dismissal only when safe. Provide success, information, warning, and error variants. |
 | Toast/notification | Report brief, non-blocking outcomes. Keep wording concise, avoid stacking excessive notifications, and allow enough time to read; critical errors require persistent in-page presentation instead. |
-| Badges/status indicators | Summarize a short state. Use consistent shape, size, semantic color, and text label. Do not use a badge for long explanations or encode state by color alone. |
+| Badges/status indicators | Summarize a short state. Use consistent shape, size, semantic color, and text label. Do not use a badge for long explanations or encode state by color alone. Outcome badges (`badge-success`, `badge-error`) use a white surface with a border, because the semantic text colors do not reach 4.5:1 on the tinted default badge. |
 | Tabs | Switch among peer views within the same context. Keep labels short and active state obvious. Preserve keyboard arrow-key navigation and tab semantics; do not use tabs as a substitute for primary navigation. |
 | Breadcrumbs | Show the current location within a hierarchy. Include only navigable ancestors and a clear current-page label; use consistent separators and hide or collapse gracefully on narrow screens. |
 | Dropdown menus | Reveal a small set of related actions. Anchor to the trigger, group related items, support keyboard navigation and Escape, and use separators sparingly. Destructive actions remain clearly identified. |
@@ -140,6 +140,8 @@ Tables are for comparing records across consistent attributes. Use clear column 
 
 Sorting MUST be indicated on the active column and operable by keyboard. Filtering controls MUST be visibly associated with the table and distinguish active filters. Pagination MUST show the current page or range and preserve sort/filter state. Place row actions consistently, expose accessible names, and avoid making the entire row clickable when it contains independent controls.
 
+**Audit timestamps:** audit history shows every date-time as `yyyy-MM-dd HH:mm:ss` followed by the label "UTC", inside a `time` element with the ISO value in `datetime` (the shared `app-utc-timestamp` component). Date-range filters on those screens are labeled "(UTC)" and sent as UTC. Outcomes appear as text in a badge, never as color alone, and keyset paging shows "Page N" with Previous and Next because the total is not known.
+
 Loading MUST preserve the table's expected geometry. Empty data and no matching results MUST have distinct messages. On smaller screens, prioritize important columns and provide a usable horizontal-scroll region or an explicitly designed compact representation; do not silently clip critical values or actions. Keep table headers available to assistive technology and provide captions or an equivalent accessible name.
 
 ## 9. Navigation
@@ -150,7 +152,7 @@ Navigation MUST make the user's current location and available destinations unde
 - **Active role:** shown as a badge ("Role: Student"). For an account with several roles, a labelled "Active role" select replaces the badge.
 - **Sign out:** a full-width secondary button.
 
-On wide screens the shell fills the viewport and only the main content scrolls, so the account section is always visible. On mobile it appears at the bottom of the menu drawer, one tap from any page. The header holds only the application identity and, on mobile, the menu control.
+On wide screens the shell fills the viewport and only the main content scrolls, so the account section is always visible. On mobile it appears at the bottom of the menu drawer, one tap from any page. The header holds only the application identity (the approved IIT logo at 40px tall, original aspect ratio, beside the portal name) and, on mobile, the menu control.
 
 Role-specific navigation may expose different destinations, but must use the same component, spacing, active-state, and naming conventions. The server remains authoritative for authorization; navigation visibility is not a security boundary. Use breadcrumbs for deep hierarchies. On mobile, use an accessible menu or drawer with a clear open/close control, sensible focus behavior, and enough touch space. Avoid duplicating the same destination in multiple navigation regions without a clear reason.
 
