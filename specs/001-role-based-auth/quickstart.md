@@ -22,6 +22,8 @@ node --version
 dotnet --version
 
 # Service: apply migrations, run tests (xUnit), then start on HTTPS. Swagger UI opens at https://localhost:7286/swagger.
+# dotnet ef uses ConnectionStrings:PortalMigrations when set (schema owner), otherwise ConnectionStrings:Portal, so this
+# works unchanged with one local account. Deployments with a separate runtime role: see the service README, "Database accounts".
 Push-Location iit-academic-portal-service
 dotnet tool restore
 dotnet ef database update -p src/IitAcademicPortal.Infrastructure -s src/IitAcademicPortal.Api
