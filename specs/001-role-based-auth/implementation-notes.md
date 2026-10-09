@@ -20,20 +20,21 @@ No major version deviates from the constitution. pgvector is not referenced beca
 
 | Decision | Reason |
 |---|---|
-| Custom `PortalSession` authentication handler over an `AuthSessions` table, not the Identity cookie | Per-session active role, single-session revocation, and no expiry. Identity's security-stamp cookie validation would revoke other sessions after a password reset. |
+| Custom `PortalSession` authentication handler over an `AuthSessions` table, not the Identity cookie | Per-session active role, single-session revocation, and a sliding three-hour inactivity timeout. Identity's security-stamp cookie validation would revoke other sessions after a password reset. |
 | Only the active role is issued as a role claim | Standard `RequireRole` policies then cannot grant the union of a multi-role user's roles. |
 | Active role re-checked against current assignments on every request (one query joins the session and the user's roles) | Removed assignments stop authorizing on the next request (FR-007, edge case "role assignment changes"). |
 | Recovery requests are queued and processed in the background | The response is identical in content and in timing for known and unknown emails (FR-015). |
 | Recovery proof lifetime defaults to **1 hour** (`PasswordRecovery:ProofLifespan`) | The spec says "short-lived" without a value. **Confirm this value with the project owner.** Proofs are single-use because Identity rotates the security stamp on reset. |
 | Unknown email at sign-in is verified against a dummy hash | The failure response and its timing match those for a wrong password. |
-| Signing in again from the same browser revokes the browser's previous session | A replaced cookie would otherwise leave an orphaned, never-expiring session. |
+| Signing in again from the same browser revokes the browser's previous session | A replaced cookie would otherwise leave an orphaned session until its idle timeout elapsed. |
 | Authentication and recovery endpoints are rate-limited to 10 requests per minute per client address (configurable) | The contract declares 429. The spec gives no limit, so the default is an assumption. |
 | Account lockout is not enabled | The spec does not ask for it. Lockouts that an administrator sets on an account are still honored. |
 | Record boundaries are expressed as `IStudentOwnedRecord`, `ITeacherAssignedRecord`, and `ICoordinatorAssignedRecord` with a `RecordAccess` policy | Course, batch, and result entities are out of scope. Future modules implement these interfaces, and the tests use stand-in records. |
 | Role landing pages show an empty state | Module content is out of scope (spec "Out of Scope"). |
 | Tailwind CSS v4 (approved by the project owner 2026-10-08), themed from the design tokens with the default palette removed | The plan allowed Tailwind only with approval. The tokens stay the single source, and the build rejects colors outside the design system. |
 | Swagger UI (Swashbuckle UI only) over the built-in `/openapi/v1.json`, Development only, opened by the launch profiles | Requested by the project owner. It runs before authorization so the page is public, while every API endpoint keeps the secure-by-default policy. A request interceptor adds the anti-forgery header. |
-| IIT logo (`public/images/iit-logo.png`, 600×327) in a shared, centered `AuthBrand` header on every focused screen (sign-in, forgot password, reset password, role selection, not found): 80px tall at its original aspect ratio, text alternative "IIT, University of Dhaka", with the portal name below | The project owner supplied the asset and asked for centered placement on 2026-10-08. The placement is now specified in design-system §10. |
+| IIT logo (`public/images/iit-logo.png`, 600×327) in a shared, centered `AuthBrand` header on every focused screen (sign-in, forgot password, reset password, not found): 80px tall at its original aspect ratio, text alternative "IIT, University of Dhaka", with the portal name below | The project owner supplied the asset and asked for centered placement on 2026-10-08. The placement is now specified in design-system §10. |
+| Stored default role per account (`AspNetUsers.DefaultRole`); sign-in enters it directly, with the fallback order Admin, Coordinator, Teacher, Student when it is missing or unassigned; the role-selection page is removed | Project-owner decision on 2026-10-09. A removed active role also falls back to the default among the remaining roles rather than leaving the session without a role. Administrators will change defaults through user management (later). |
 | Favicon (`favicon.ico`, 16/32/48px) and 180px `apple-touch-icon.png` generated from the logo; this replaces the Angular default icon | Requested by the project owner on 2026-10-08. The browser-tab icon uses only the "IIT" lettermark on a white rounded tile, because the "University of Dhaka" bar is unreadable below 48px. The logo is not recolored or stretched (design-system §10). |
 | Development-only account seeder, gated on `DevelopmentSeed:Password` | The quickstart needs test accounts, and provisioning is out of scope. No password is stored in source. |
 
@@ -41,8 +42,8 @@ No major version deviates from the constitution. pgvector is not referenced beca
 
 | Command | Result |
 |---|---|
-| `dotnet test` (service) | 45 passed, 0 failed |
-| `npx ng test --watch=false` (frontend) | 28 passed, 0 failed |
+| `dotnet test` (service) | 54 passed, 0 failed (2026-10-09, after the idle-timeout and default-role changes) |
+| `npx ng test --watch=false` (frontend) | 28 passed, 0 failed (2026-10-09, after the role-selection page was removed) |
 | `npx ng build` (frontend) | Succeeded with no budget warnings; initial bundle 332 kB raw / 85 kB transferred, including Tailwind styles of 17 kB raw / 3.5 kB transferred |
 | `dotnet run` (Api, https profile) | Boots without a database. The anti-forgery endpoint, a 401 problem on `GET /sessions/current`, and a 400 problem for sign-in without a CSRF token were all checked. |
 
@@ -58,13 +59,13 @@ Quickstart mapping:
 | Quickstart scenario | Automated coverage |
 |---|---|
 | 1 Single-role sign-in | `SignInAndSignOutTests`, `Login` spec |
-| 2 Multi-role selection and switching | `ActiveRoleTests`, `Shell` and `SelectRole` specs |
+| 2 Multi-role default and switching | `ActiveRoleTests`, `DefaultRoleTests`, `Login` and `Shell` specs |
 | 3 Direct unauthorized access | `AuthorizationBoundaryTests` |
 | 4 Generic sign-in failures | `SignInAndSignOutTests` |
 | 5 Recovery enumeration | `PasswordRecoveryTests` |
 | 6 Replacement-password validation | `PasswordRecoveryTests`, `PasswordPolicyTests`, `ResetPassword` spec |
 | 7 Session reset semantics | `PasswordRecoveryTests` |
-| 8 No automatic expiry | `SignInAndSignOutTests` (a session aged three years stays valid) |
+| 8 Three-hour inactivity timeout | `SignInAndSignOutTests` (authenticated activity refreshes the window; a session idle past three hours is revoked) |
 | 9 Logout and browser navigation | `SignInAndSignOutTests`, plus `Cache-Control: no-store` on API responses |
 | 10 Loading, validation, accessibility | `Login`, `ForgotPassword`, and `ResetPassword` specs |
 
@@ -111,12 +112,13 @@ Fixed during review:
 | Error responses | `ProblemDetails` everywhere, with no stack traces outside Development. Responses use `Cache-Control: no-store`. |
 | Transport | HTTPS redirection, plus HSTS outside Development. |
 
-**Accepted residual risk: sessions never expire.** Per FR-013, a session stays valid until the user signs out
-or it is revoked. A stolen or unattended device keeps access indefinitely. A password reset does not revoke
-the user's other sessions (FR-018), so resetting does not lock out an attacker who already holds a session.
+**Accepted residual risk: up to three hours of idle exposure.** Per FR-013, authenticated requests refresh the
+sliding inactivity window; a stolen or unattended device can remain usable until three hours after its last
+authenticated request. A password reset does not revoke the user's other sessions (FR-018), so resetting does
+not immediately lock out an attacker who already holds another active session.
 
 Mitigations in place:
-- Sign-out is always visible.
+- Sign-out is in the account section at the bottom of the sidebar (design-system §9). It is always visible on wide screens and one tap away in the mobile menu. Moved from the header on 2026-10-09 at the project owner's request.
 - The cookie is protected.
 - CSRF protection is in place.
 - Authorization is checked on every request.
@@ -159,3 +161,12 @@ normalized emails to resolve.
 The development accounts were then seeded, and sign-in has written `AuthSessions` rows. `dotnet ef` reads the API
 project's configuration (`appsettings.Development.json` plus user secrets); there is no separate design-time
 connection string.
+
+## Session timeout update (2026-10-09)
+
+- Implemented a sliding three-hour inactivity timeout; each authenticated request updates `LastActivityAt` and reissues the cookie with a matching expiry.
+- Added API coverage for refreshing activity and revoking a session after three hours idle. Focused `SignInAndSignOutTests` passed: 9 passed, 0 failed, using an isolated artifacts directory because the running Debug API holds its output assemblies open.
+- Generated `20261008204920_SessionIdleTimeout`, which adds `LastActivityAt` and backfills existing rows from `CreatedAt`.
+- **Applied 2026-10-09** to the local PostgreSQL database. `dotnet ef migrations list` confirms both `InitialIdentityAndSessions` and `SessionIdleTimeout` are applied.
+- Restart the running API with the updated build before using it: the existing Debug process predates `LastActivityAt` and cannot create sessions against the migrated schema.
+- The full backend test suite and migration-script generation passed. Manual browser scenarios and security/release sign-off remain outstanding.

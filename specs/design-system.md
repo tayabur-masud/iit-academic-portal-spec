@@ -144,7 +144,13 @@ Loading MUST preserve the table's expected geometry. Empty data and no matching 
 
 ## 9. Navigation
 
-Navigation MUST make the user's current location and available destinations understandable. Use a consistent top header for the application identity and global controls, with a persistent sidebar on wide screens where the application structure warrants it. Mark the active item with more than color alone (such as weight, indicator, or icon treatment). Nested items MUST have clear parent/child hierarchy and expansion state.
+Navigation MUST make the user's current location and available destinations understandable. Use a consistent top header for the application identity, with a persistent sidebar on wide screens where the application structure warrants it. Mark the active item with more than color alone (such as weight, indicator, or icon treatment). Nested items MUST have clear parent/child hierarchy and expansion state.
+
+**Account section:** the user's account controls sit at the bottom of the sidebar, below the navigation and separated by a divider:
+- **Active role:** shown as a badge ("Role: Student"). For an account with several roles, a labelled "Active role" select replaces the badge.
+- **Sign out:** a full-width secondary button.
+
+On wide screens the shell fills the viewport and only the main content scrolls, so the account section is always visible. On mobile it appears at the bottom of the menu drawer, one tap from any page. The header holds only the application identity and, on mobile, the menu control.
 
 Role-specific navigation may expose different destinations, but must use the same component, spacing, active-state, and naming conventions. The server remains authoritative for authorization; navigation visibility is not a security boundary. Use breadcrumbs for deep hierarchies. On mobile, use an accessible menu or drawer with a clear open/close control, sensible focus behavior, and enough touch space. Avoid duplicating the same destination in multiple navigation regions without a clear reason.
 
@@ -152,7 +158,7 @@ Role-specific navigation may expose different destinations, but must use the sam
 
 Login, forgot-password, and password-reset screens MUST be focused, uncluttered, and visibly part of the IIT Academic Portal. Use the approved logo asset at its correct aspect ratio and the approved brand token; do not add unapproved decorative brand colors. Place the form in a clear content region with a prominent heading, persistent labels, readable help/error text, and one primary action.
 
-**Brand header:** every focused authentication screen (sign-in, forgot password, reset password, role selection, and page not found) opens with the same brand header:
+**Brand header:** every focused authentication screen (sign-in, forgot password, reset password, and page not found) opens with the same brand header:
 - The approved IIT logo (the "IIT" lettermark above a "University of Dhaka" bar, in brand primary on a white background), 80px tall at its original 600×327 aspect ratio. Never stretch or recolor it.
 - The text alternative "IIT, University of Dhaka".
 - "IIT Academic Portal" set in the heading size, semibold, in brand primary.

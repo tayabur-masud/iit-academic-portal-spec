@@ -10,7 +10,7 @@
 - The supported role catalog is Admin, Student, Teacher, and Coordinator. Role-specific capabilities and record boundaries come from the approved feature list.
 - Keep the active role per authenticated session, not as a user-wide property. A user's assigned roles and active role are separate concepts.
 - Store server-side session state so individual sessions can be revoked and so active-role state is authoritative. Do not persist a raw session secret.
-- Do not add automatic session-expiration or last-activity timeout fields. The approved policy keeps sessions active until explicit logout or a specified revocation action.
+- Store the last authenticated activity timestamp for each session. Sessions expire after three hours without authenticated activity; authenticated requests refresh this timestamp.
 - Use Identity's password hash and reset-token facilities. Do not store plaintext passwords, raw reset proofs, or a duplicate credential table.
 
 ## Logical Entities
@@ -25,6 +25,7 @@ Represents one portal identity managed by ASP.NET Core Identity.
 | Email | Sign-in and recovery address | Required for the supported email/password flow |
 | Normalized email | Canonicalized email lookup value | Unique across accounts so sign-in resolves to one account |
 | Password hash | Identity-managed credential verifier | Never expose or log the stored hash |
+| Default role | Role entered at sign-in | Nullable; one of the supported roles. Takes effect only while assigned to the account; otherwise the first assigned role in the order Admin, Coordinator, Teacher, Student is used. Changed by administrators (user management, later) |
 | Email status | Existing Identity confirmation state, if used by the current service | This feature sends recovery to the email recorded on the account; no extra verification workflow is added here |
 
 A Student's recorded email is their personal email. Other roles use the email recorded for their account.
@@ -48,10 +49,11 @@ Represents one independently revocable authenticated browser session.
 | User ID | Owning account | Required; references one user account |
 | Active role | Current role context for this session | Nullable only while a multi-role user is choosing a role; when set, it MUST be assigned to the user |
 | Created at | Session creation time | Required for security diagnosis; not used as an automatic expiry cutoff |
+| Last activity at | Time of the most recent authenticated request | Required; initialized to Created at and refreshed on each authenticated request; a session expires when this time is three hours old |
 | Revoked at | Time this session was explicitly invalidated | Null while active |
-| Revocation reason | Logout, password reset of this session, or another approved security action | Must not contain credentials or reset proofs |
+| Revocation reason | Logout, password reset of this session, idle timeout, or another approved security action | Must not contain credentials or reset proofs |
 
-There is deliberately no automatic `ExpiresAt`, idle-timeout, or maximum-age field. If the current service already provides suitable per-session state, reuse it rather than adding duplicate storage.
+The session has no separate absolute maximum age. The server checks the persisted activity timestamp on every authenticated request and records idle expiration as a revocation with reason `IdleTimeout`.
 
 ### Recovery Proof
 
@@ -62,22 +64,22 @@ A short-lived, single-use proof generated and validated by the configured Identi
 - One user has zero or more role assignments; each assignment references exactly one user and one supported role.
 - One user has zero or more authenticated sessions; each session belongs to exactly one user.
 - A session's active role, when present, MUST belong to that user's current role assignments.
-- A single-role account receives that role as its active role at sign-in. A multi-role account has no active role until it selects one.
+- Every account with a supported role receives its default role as the active role at sign-in; there is no role-selection step. An account with no supported role has no active role.
 - Each protected request validates the session and current role assignment. A role removed from an account no longer authorizes requests, even if an older browser session remains active.
 - Role switching changes only the current session's active role. It does not alter the user's assignments or other sessions.
 - Explicit logout revokes only the current session.
 - Password reset revokes only the session used to complete reset. Other sessions remain active, including across the credential change, as explicitly required.
-- Sessions do not expire automatically due to inactivity or elapsed time. A user on a shared device must explicitly sign out.
+- Authenticated activity refreshes the session's sliding three-hour inactivity window. A user on a shared device should explicitly sign out rather than rely on idle expiration.
 - Authentication and recovery errors, password hashes, cookie values, session handles, and reset proofs MUST NOT be written to application logs.
 
 ## Session State Transitions
 
-1. **Created**: valid email/password creates a session. A single-role user receives that active role; a multi-role user proceeds to role selection with no active role.
-2. **Role active**: a single-role session starts here, or a multi-role session enters here after selecting an assigned role.
+1. **Created**: valid email/password creates a session in the account's default role.
+2. **Role active**: every session with an assigned role starts here. If the active role is removed from the account, the session continues in the default role among the remaining roles.
 3. **Role switched**: selecting another assigned role updates only the current session. If the current location is unavailable under the new role, the user moves to that role's authorized landing experience.
 4. **Revoked**: explicit logout or password reset of this session marks only this session revoked. A revoked session cannot access protected capabilities.
 
-There is no time-based transition to an expired state.
+5. **Expired**: a protected request arrives at or after three hours since `LastActivityAt`; the server revokes that session with reason `IdleTimeout`, rejects the request, and clears the stale cookie.
 
 ## Persistence and Migration Impact
 
@@ -85,8 +87,12 @@ The existing service's Identity schema and migrations are not present in this pl
 
 *Outcome (2026-10-08):* no existing schema existed. The `InitialIdentityAndSessions` migration creates:
 - the Identity tables
-- an `AuthSessions` table (`Id`, `HandleDigest` unique, `UserId` foreign key with cascade, `ActiveRole`, `CreatedAt`, `RevokedAt`, `RevocationReason`; no expiry column)
+- an `AuthSessions` table (`Id`, `HandleDigest` unique, `UserId` foreign key with cascade, `ActiveRole`, `CreatedAt`, `RevokedAt`, `RevocationReason`; the initial schema predates `LastActivityAt`)
 - a unique `EmailIndex` on `NormalizedEmail`
 - the four seeded roles
 
 It is applied on PostgreSQL 18.3.
+
+*Update (2026-10-09):* `SessionIdleTimeout` adds required `LastActivityAt`, backfilled from `CreatedAt` for existing rows. Apply this migration to PostgreSQL before running the updated service.
+
+*Update (2026-10-09):* the `UserDefaultRole` migration adds a nullable `DefaultRole` column (max 32 characters) to `AspNetUsers`. It is applied on PostgreSQL 18.3.
