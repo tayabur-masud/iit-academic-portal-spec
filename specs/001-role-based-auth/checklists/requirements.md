@@ -33,6 +33,7 @@
 
 - Sign-in uses email and password; Students use their personal email, and password recovery is sent to the registered account email.
 - Replacement passwords require at least 8 characters, including a letter and a number.
+- Multi-role users sign in directly to the account's stored default role (fallback order Admin, Coordinator, Teacher, Student); there is no role-selection step.
 - Sessions expire after three hours without authenticated activity; requests refresh the sliding window, and password reset revokes only the session used for the reset.
 - Role-module and assigned-record boundaries follow the approved feature list supplied by the user.
 - The specification is ready for `/speckit-plan`.

@@ -25,6 +25,7 @@ Represents one portal identity managed by ASP.NET Core Identity.
 | Email | Sign-in and recovery address | Required for the supported email/password flow |
 | Normalized email | Canonicalized email lookup value | Unique across accounts so sign-in resolves to one account |
 | Password hash | Identity-managed credential verifier | Never expose or log the stored hash |
+| Default role | Role entered at sign-in | Nullable; one of the supported roles. Takes effect only while assigned to the account; otherwise the first assigned role in the order Admin, Coordinator, Teacher, Student is used. Changed by administrators (user management, later) |
 | Email status | Existing Identity confirmation state, if used by the current service | This feature sends recovery to the email recorded on the account; no extra verification workflow is added here |
 
 A Student's recorded email is their personal email. Other roles use the email recorded for their account.
@@ -63,7 +64,7 @@ A short-lived, single-use proof generated and validated by the configured Identi
 - One user has zero or more role assignments; each assignment references exactly one user and one supported role.
 - One user has zero or more authenticated sessions; each session belongs to exactly one user.
 - A session's active role, when present, MUST belong to that user's current role assignments.
-- A single-role account receives that role as its active role at sign-in. A multi-role account has no active role until it selects one.
+- Every account with a supported role receives its default role as the active role at sign-in; there is no role-selection step. An account with no supported role has no active role.
 - Each protected request validates the session and current role assignment. A role removed from an account no longer authorizes requests, even if an older browser session remains active.
 - Role switching changes only the current session's active role. It does not alter the user's assignments or other sessions.
 - Explicit logout revokes only the current session.
@@ -73,8 +74,8 @@ A short-lived, single-use proof generated and validated by the configured Identi
 
 ## Session State Transitions
 
-1. **Created**: valid email/password creates a session. A single-role user receives that active role; a multi-role user proceeds to role selection with no active role.
-2. **Role active**: a single-role session starts here, or a multi-role session enters here after selecting an assigned role.
+1. **Created**: valid email/password creates a session in the account's default role.
+2. **Role active**: every session with an assigned role starts here. If the active role is removed from the account, the session continues in the default role among the remaining roles.
 3. **Role switched**: selecting another assigned role updates only the current session. If the current location is unavailable under the new role, the user moves to that role's authorized landing experience.
 4. **Revoked**: explicit logout or password reset of this session marks only this session revoked. A revoked session cannot access protected capabilities.
 
@@ -93,3 +94,5 @@ The existing service's Identity schema and migrations are not present in this pl
 It is applied on PostgreSQL 18.3.
 
 *Update (2026-10-09):* `SessionIdleTimeout` adds required `LastActivityAt`, backfilled from `CreatedAt` for existing rows. Apply this migration to PostgreSQL before running the updated service.
+
+*Update (2026-10-09):* the `UserDefaultRole` migration adds a nullable `DefaultRole` column (max 32 characters) to `AspNetUsers`. It is applied on PostgreSQL 18.3.

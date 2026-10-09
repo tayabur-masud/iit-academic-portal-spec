@@ -217,5 +217,15 @@ After Phase 2, assign US1 and US2 to separate workers against the agreed contrac
 - [ ] T032 Complete the manual browser pass for quickstart scenarios 1–10 across the existing Angular and service submodules, and record each result in `specs/001-role-based-auth/implementation-notes.md` per `quickstart.md` scenarios 1–10 (partial)
 - [ ] T033 Obtain explicit security/release-owner sign-off for the residual risk of sessions remaining usable for up to three hours after their last authenticated request, and record approval in `specs/001-role-based-auth/implementation-notes.md` per `plan.md` post-design security gate (missing)
 - [ ] T034 Verify authentication and role-switch layouts at every supported breakpoint and at 200% zoom, record findings in `specs/001-role-based-auth/implementation-notes.md`, and fix any overflow or clipped controls in the existing Angular auth/shell files per design-system Sections 13–14 (partial)
-- [ ] T035 Run a screen-reader pass over login, recovery, reset, role selection/switching, unauthorized, and not-found experiences; record findings and remediate defects in the existing Angular auth/shell files per FR-020 and design-system Section 13 (missing)
+- [ ] T035 Run a screen-reader pass over login, recovery, reset, role switching, unauthorized, and not-found experiences; record findings and remediate defects in the existing Angular auth/shell files per FR-020 and design-system Section 13 (missing)
 - [ ] T036 Obtain project-owner approval for the configured one-hour password-recovery proof lifetime or change it to the approved duration in `iit-academic-portal-service/src/IitAcademicPortal.Application/PasswordRecovery/PasswordRecoveryOptions.cs`; update `specs/001-role-based-auth/implementation-notes.md` and verify expiry/replay behavior in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/PasswordRecoveryTests.cs` per FR-017 (partial)
+
+## Phase 8: Default Role (Change 2026-10-09)
+
+**Purpose**: Multi-role users sign in directly to a stored default role instead of choosing a role (spec Clarifications 2026-10-09, FR-005, US4, AC-003).
+
+- [X] T037 [US4] Add a nullable `DefaultRole` to the account in `iit-academic-portal-service/src/IitAcademicPortal.Domain/Identity/PortalUser.cs`, `PortalRoles.ResolveDefault` with the Admin, Coordinator, Teacher, Student fallback order, and the `UserDefaultRole` EF Core migration (applied locally on PostgreSQL 18.3)
+- [X] T038 [US4] Start every session in the default role at sign-in, and fall back to the default among remaining roles when the active role is removed, in `PortalAuthenticationService` and `AuthSessionRepository`
+- [X] T039 [P] [US4] Add service tests for the stored default, the fallback order (missing or unassigned default), and removed-role fallback in `ActiveRoleTests.cs`, plus `DefaultRoleTests` unit cases
+- [X] T040 [US4] Remove the role-selection page, route, and guard from `iit-academic-portal/`; route multi-role users straight to their default role's area; update the Angular specs
+- [X] T041 Seed development accounts with a default role (Teacher+Coordinator defaults to Teacher) and update the spec, data model, contract, quickstart, design system, and READMEs

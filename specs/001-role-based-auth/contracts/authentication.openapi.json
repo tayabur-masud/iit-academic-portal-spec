@@ -46,7 +46,7 @@
         },
         "responses": {
           "201": {
-            "description": "Session created. A protected session cookie is set. A multi-role account receives a null active role until it selects one.",
+            "description": "Session created. A protected session cookie is set. The session starts in the account's default role (stored default while assigned, otherwise the first assigned role in the order Admin, Coordinator, Teacher, Student); activeRole is null only when no supported role is assigned.",
             "headers": {
               "Set-Cookie": {
                 "description": "Protected session cookie with a sliding three-hour expiry, refreshed on authenticated requests. The server rejects and revokes the session after three hours without authenticated activity; there is no separate maximum-age timeout.",
@@ -101,7 +101,7 @@
     "/api/auth/sessions/current/active-role": {
       "put": {
         "operationId": "setActiveRole",
-        "summary": "Select or switch to a role assigned to the current account",
+        "summary": "Switch to another role assigned to the current account",
         "security": [{ "sessionCookie": [], "antiForgery": [] }],
         "requestBody": {
           "required": true,

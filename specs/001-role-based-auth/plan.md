@@ -26,13 +26,13 @@ Provide email/password authentication, registered-email password recovery, per-r
 
 **Constraints**: Use the constitution-pinned major versions; changing a major framework version requires explicit project-level approval. Email/password sign-in; students use their recorded personal email; replacement password minimum is 8 characters with at least one letter and one number; reset revokes only the current session; sessions expire after three hours without authenticated activity, with no separate maximum age. Enforce authorization on the server and reuse the design-system tokens. A session can remain usable on an unattended or lost device for up to three hours after its last authenticated request; include this residual risk in security review.
 
-**Scale/Scope**: Four supported roles, single- and multi-role accounts, sign-in/out, recovery/reset, active-role selection/switching, and feature-list role/record boundaries. Account volume is not specified; use existing application scale assumptions rather than inventing a target.
+**Scale/Scope**: Four supported roles, single- and multi-role accounts, sign-in/out, recovery/reset, default-role sign-in and active-role switching, and feature-list role/record boundaries. Account volume is not specified; use existing application scale assumptions rather than inventing a target.
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- **I. IIT visual identity and academic usability — PASS**: Authentication, role selection, loading, validation, error, and unauthorized states reference `specs/design-system.md`; no new brand styling is proposed.
+- **I. IIT visual identity and academic usability — PASS**: Authentication, role switching, loading, validation, error, and unauthorized states reference `specs/design-system.md`; no new brand styling is proposed.
 - **II. Maintainable layered architecture — PASS**: Angular remains presentation; ASP.NET Core application/business logic remains separate from persistence; keep endpoints thin and reuse existing Identity infrastructure.
 - **III. RESTful API contracts — PASS**: Proposed external contracts use resource-oriented session and password-recovery resources, semantically appropriate methods, consistent errors, and DTOs rather than persistence entities.
 - **IV. Security and data integrity — PASS WITH DOCUMENTED RESIDUAL RISK**: Enforce server-side least privilege, current role-assignment checks, generic login/recovery responses, protected cookies, CSRF defenses, and secret-free logs. The user selected a three-hour inactivity timeout and current-session-only reset revocation. These decisions require persistent per-session activity state plus a custom Identity integration; retain the residual unattended-device risk in security review.
@@ -42,7 +42,7 @@ Provide email/password authentication, registered-email password recovery, per-r
 
 ### Post-Design Re-check
 
-- **Architecture and REST — PASS**: The Angular client calls resource-oriented API contracts. Each request carries its protected session credential; the server validates it and current role membership for that request. Session state is modeled as a resource for active-role selection and individual revocation, not connection-bound conversational state.
+- **Architecture and REST — PASS**: The Angular client calls resource-oriented API contracts. Each request carries its protected session credential; the server validates it and current role membership for that request. Session state is modeled as a resource for active-role switching and individual revocation, not connection-bound conversational state.
 - **Security — PASS WITH ACCEPTED RESIDUAL RISK**: The server validates session revocation, active-role assignment, and record boundaries; authenticated requests refresh a three-hour inactivity window. A session can remain exposed on an unattended/lost device for up to three hours after its last activity; mitigate with protected cookies, CSRF defenses, prominent logout, and security review. Reset deliberately leaves other sessions active.
 - **Persistence — PASS WITH MIGRATION REQUIRED**: EF Core 10 with the Npgsql 10.x provider supports PostgreSQL 18; `SessionIdleTimeout` adds and backfills the required per-session activity timestamp.
 - **UX and accessibility — PASS**: The OpenAPI outcomes and quickstart scenarios map to the shared design-system states; no new visual tokens or component library are introduced.

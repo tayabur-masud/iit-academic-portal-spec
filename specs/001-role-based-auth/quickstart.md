@@ -44,7 +44,7 @@ For the API smoke checks below, use Swagger UI. It sends the session cookie auto
 ## End-to-End Scenarios
 
 1. **Single-role sign-in**: Sign in as a Student using the personal email recorded for the account. Confirm the Student experience opens, the active role is Student, and protected data is limited to that student's records.
-2. **Multi-role selection and switching**: Sign in as the Teacher+Coordinator account. Confirm only those assigned roles are offered. Select Teacher and verify access only to assigned courses and assessment components. Switch to Coordinator and verify assigned-batch boundaries. Attempt an unassigned role and confirm denial.
+2. **Multi-role default and switching**: Sign in as the Teacher+Coordinator account (seeded with default role Teacher). Confirm the portal opens the Teacher area directly without asking for a role, and the menu's role switcher offers only Teacher and Coordinator. Verify access only to assigned courses and assessment components. Switch to Coordinator and verify assigned-batch boundaries. Attempt an unassigned role and confirm denial.
 3. **Direct unauthorized access**: While signed in as Student, request a Teacher-only or another student's protected record directly through the API. Confirm server-side denial and no protected data in the response. Repeat for unassigned courses/batches.
 4. **Generic sign-in failures**: Submit a wrong password and an unknown email. Confirm the same public failure shape and that neither attempt creates a session.
 5. **Password recovery enumeration**: Request a reset for a known email and an unknown email. Confirm the same HTTP status and public response body for both. For the known test mailbox, follow the one-use recovery proof.

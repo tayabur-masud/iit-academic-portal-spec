@@ -33,7 +33,8 @@ No major version deviates from the constitution. pgvector is not referenced beca
 | Role landing pages show an empty state | Module content is out of scope (spec "Out of Scope"). |
 | Tailwind CSS v4 (approved by the project owner 2026-10-08), themed from the design tokens with the default palette removed | The plan allowed Tailwind only with approval. The tokens stay the single source, and the build rejects colors outside the design system. |
 | Swagger UI (Swashbuckle UI only) over the built-in `/openapi/v1.json`, Development only, opened by the launch profiles | Requested by the project owner. It runs before authorization so the page is public, while every API endpoint keeps the secure-by-default policy. A request interceptor adds the anti-forgery header. |
-| IIT logo (`public/images/iit-logo.png`, 600×327) in a shared, centered `AuthBrand` header on every focused screen (sign-in, forgot password, reset password, role selection, not found): 80px tall at its original aspect ratio, text alternative "IIT, University of Dhaka", with the portal name below | The project owner supplied the asset and asked for centered placement on 2026-10-08. The placement is now specified in design-system §10. |
+| IIT logo (`public/images/iit-logo.png`, 600×327) in a shared, centered `AuthBrand` header on every focused screen (sign-in, forgot password, reset password, not found): 80px tall at its original aspect ratio, text alternative "IIT, University of Dhaka", with the portal name below | The project owner supplied the asset and asked for centered placement on 2026-10-08. The placement is now specified in design-system §10. |
+| Stored default role per account (`AspNetUsers.DefaultRole`); sign-in enters it directly, with the fallback order Admin, Coordinator, Teacher, Student when it is missing or unassigned; the role-selection page is removed | Project-owner decision on 2026-10-09. A removed active role also falls back to the default among the remaining roles rather than leaving the session without a role. Administrators will change defaults through user management (later). |
 | Favicon (`favicon.ico`, 16/32/48px) and 180px `apple-touch-icon.png` generated from the logo; this replaces the Angular default icon | Requested by the project owner on 2026-10-08. The browser-tab icon uses only the "IIT" lettermark on a white rounded tile, because the "University of Dhaka" bar is unreadable below 48px. The logo is not recolored or stretched (design-system §10). |
 | Development-only account seeder, gated on `DevelopmentSeed:Password` | The quickstart needs test accounts, and provisioning is out of scope. No password is stored in source. |
 
@@ -41,8 +42,8 @@ No major version deviates from the constitution. pgvector is not referenced beca
 
 | Command | Result |
 |---|---|
-| `dotnet test` (service) | 45 passed, 0 failed |
-| `npx ng test --watch=false` (frontend) | 28 passed, 0 failed |
+| `dotnet test` (service) | 54 passed, 0 failed (2026-10-09, after the idle-timeout and default-role changes) |
+| `npx ng test --watch=false` (frontend) | 28 passed, 0 failed (2026-10-09, after the role-selection page was removed) |
 | `npx ng build` (frontend) | Succeeded with no budget warnings; initial bundle 332 kB raw / 85 kB transferred, including Tailwind styles of 17 kB raw / 3.5 kB transferred |
 | `dotnet run` (Api, https profile) | Boots without a database. The anti-forgery endpoint, a 401 problem on `GET /sessions/current`, and a 400 problem for sign-in without a CSRF token were all checked. |
 
@@ -58,7 +59,7 @@ Quickstart mapping:
 | Quickstart scenario | Automated coverage |
 |---|---|
 | 1 Single-role sign-in | `SignInAndSignOutTests`, `Login` spec |
-| 2 Multi-role selection and switching | `ActiveRoleTests`, `Shell` and `SelectRole` specs |
+| 2 Multi-role default and switching | `ActiveRoleTests`, `DefaultRoleTests`, `Login` and `Shell` specs |
 | 3 Direct unauthorized access | `AuthorizationBoundaryTests` |
 | 4 Generic sign-in failures | `SignInAndSignOutTests` |
 | 5 Recovery enumeration | `PasswordRecoveryTests` |
@@ -117,7 +118,7 @@ authenticated request. A password reset does not revoke the user's other session
 not immediately lock out an attacker who already holds another active session.
 
 Mitigations in place:
-- Sign-out is always visible.
+- Sign-out is in the account section at the bottom of the sidebar (design-system §9). It is always visible on wide screens and one tap away in the mobile menu. Moved from the header on 2026-10-09 at the project owner's request.
 - The cookie is protected.
 - CSRF protection is in place.
 - Authorization is checked on every request.
