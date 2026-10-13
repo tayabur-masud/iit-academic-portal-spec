@@ -36,7 +36,7 @@ For PostgreSQL-specific checks, start the service on the existing HTTPS launch p
 ## End-to-End Scenarios
 
 1. **Admin-only review**: Sign in as Admin and retrieve the audit collection and one event detail. Switch the same multi-role session to Teacher or Coordinator and repeat; both reads must return access denied. Switch back to Admin and verify access is restored. Repeat with a Student session. Confirm changing Angular navigation or submitting a different role value cannot grant access.
-2. **Filters and pagination**: As Admin, combine a start-inclusive/end-exclusive UTC range with actor, category, event type, entity type/ID, outcome, and correlation ID filters. Verify results match all filters, are newest first with event ID tie-break, and follow keyset cursors without duplicates across concurrent inserts. Verify page size defaults to 25 and values above 100 are rejected or bounded consistently with the contract.
+2. **Filters and pagination**: As Admin, combine a start-inclusive/end-exclusive UTC range with actor, category, event type, entity type/ID, outcome, and correlation ID filters. Verify results match all filters, are newest first with event ID tie-break, and follow keyset cursors without duplicates across concurrent inserts. Verify numbered pages (`page=N`) return the right slice with `totalCount` and `totalPages`, a page past the end is empty with the total, and `page` together with `cursor` is rejected. On screen, check the footer shows numbers, an ellipsis, the first and last page, and the range "Showing X to Y of N events". Verify page size defaults to 25 and values above 100 are rejected or bounded consistently with the contract.
 3. **Initial security event catalog**: Exercise successful and failed sign-in (one event per attempt, no account recorded on failure), password-reset completion/rejection, session revocation by logout, by idle timeout, and by password reset (each with its reason), active-role switch success/denial, an authenticated 403 denial, and an attempted audit-record mutation. Confirm event type, outcome, actor or null actor, UTC time, server-generated correlation ID, and client-IP source are correct.
    - **Anonymous traffic is not audited**: open the sign-in page signed out and call a protected route without a session. Confirm no audit events appear and the anonymous-401 metric increases.
    - **Reads are audited**: as Admin, run a search and open an event. Confirm each appears as `audit.review.accessed` without copying the returned contents.
@@ -55,7 +55,7 @@ For PostgreSQL-specific checks, start the service on the existing HTTPS launch p
 
 The API exposes only read routes for browser review:
 
-- `GET /api/audit-events` with supported UTC time, actor, category, event type, entity, outcome, correlation, page size, and cursor filters.
+- `GET /api/audit-events` with supported UTC time, actor, category, event type, entity, outcome, correlation, page size, and cursor or page-number filters.
 - `GET /api/audit-events/{eventId}` for one safe event detail.
 
 Both routes require the existing session cookie and an active Admin role checked by the server on each request. No client-side event creation or audit mutation route exists. Expected errors use Problem Details and do not reveal event contents.

@@ -10,6 +10,10 @@
 
 ## Clarifications
 
+### Session 2026-10-13
+
+- Q: How should the audit table footer show pages? → A: Numbered pages with a total count (1 2 3 … 40), chosen over cursor-only Previous/Next. The screen uses a `page` parameter that returns the total; the cursor remains for clients that do not need a count. Trade-off accepted: while a reviewer browses, newly arrived events can shift the numbered pages, which cursor paging avoids.
+
 ### Session 2026-10-09
 
 - Q: Who may review audit history? → A: Only users whose current session is acting in the Admin role. There is no separate auditor permission for now; one may be added by a later feature if needed.
@@ -172,7 +176,7 @@ As an institutional security owner, I need audit history to resist unauthorized 
 #### Search, retention, and operations
 
 - **FR-018**: Authorized reviewers MUST be able to filter events by UTC date/time range, actor, action type, entity type, entity identifier, outcome, and correlation/request identifier; supplied filters MUST combine predictably. A supplied start time is inclusive and a supplied end time is exclusive.
-- **FR-019**: Search results MUST support bounded pagination, default to newest-first order, and use a stable tie-breaker so concurrent writes do not cause avoidable omissions or duplicates across pages.
+- **FR-019**: Search results MUST support bounded pagination, default to newest-first order, and use a stable tie-breaker so concurrent writes do not cause avoidable omissions or duplicates across pages. Reviewers MUST be able to jump to any page by number, with the total number of matching events and pages shown; this numbered mode is an accepted exception to the no-shift guarantee, which cursor paging keeps.
 - **FR-020**: Authorized reviewers MUST be able to open a detailed event view containing the event's safe metadata and change summary without exposing excluded values. The actor is shown by its stable identifier together with the account email resolved when the event is viewed, or "(account removed)" when the account no longer exists.
 - **FR-021**: Search MUST validate date-range inputs and return understandable empty, invalid-filter, loading, and error states consistent with [the project design system](../design-system.md).
 - **FR-022**: The system MUST store timestamps in UTC and display them with an explicit time-zone indication in the user's configured display time zone or, if none is configured, UTC.

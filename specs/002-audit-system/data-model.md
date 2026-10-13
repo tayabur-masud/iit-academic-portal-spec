@@ -75,10 +75,10 @@ Represents an institutionally approved retention configuration applied through a
 
 ## Indexes and Query Shape
 
-Planning targets the required filters and stable newest-first keyset pagination:
+Planning targets the required filters and stable newest-first pagination (keyset cursors, and numbered pages with a total count):
 
 - Unique index on `EventId` for idempotent delivery and detail lookup.
-- Composite index on `(OccurredAtUtc DESC, EventId DESC)` for deterministic search order/cursor pagination.
+- Composite index on `(OccurredAtUtc DESC, EventId DESC)` for deterministic search order, cursor pagination, and offset paging.
 - Indexes on actor ID, event type, category, outcome, correlation ID, and `(EntityType, EntityId)` for supported equality filters.
 - Outbox index on `(DeliveryState, NextAttemptAtUtc)` for pending/retry worker polling, plus unique Event ID.
 

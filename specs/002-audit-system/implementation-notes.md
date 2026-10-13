@@ -64,9 +64,20 @@ to start unless `AuditFallback:Sink` is `File` with a `Directory`.
   shapes did. No index was added; the existing indexes were sufficient.
 - **Volume**: 1,000,000 events confirmed by the owner on 2026-10-09. Repeat on production-like hardware before release.
 
+### Numbered pages (added 2026-10-13)
+
+The review screen now shows numbered pages with a total (decision recorded in `spec.md`, 2026-10-13), through a
+`page` parameter that also returns `totalCount` and `totalPages`. Measured the same way as above on 1,000,000
+events (scratch database, `pgbench`, 20 runs per shape; page of 25, offset paging, plus a `count(*)` with the same
+filters): `count(*)` 64 ms median and 158 ms at the 95th percentile for the unfiltered table; the last page of the
+unfiltered table (offset 999,975) 200 ms median and 464 ms at the 95th percentile; a middle page 32 ms median; every
+filtered shape was faster. One numbered request is a count plus a page, so the worst case is about 0.6 s, inside the
+3 s target. Trade-off: new events can shift numbered pages while someone browses; cursor paging, still available,
+cannot.
+
 ## Contract comparison (T051)
 
-`contracts/audit.openapi.json` was compared with the implementation: both routes are `GET` only; the 11 query
+`contracts/audit.openapi.json` was compared with the implementation: both routes are `GET` only; the 12 query
 parameters match `AuditSearchQuery`; `AuditEvent` (including `actorDisplay`), `AuditChange`, and the page schema
 match the DTOs; the 400, 401, 403, and 404 outcomes are covered by tests. Approved difference: the mutation guard
 returns `405` with `Allow: GET`, which the contract describes in the route notes rather than as separate

@@ -64,11 +64,14 @@
           },
           {
             "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Page"
           }
         ],
         "responses": {
           "200": {
-            "description": "Filtered audit events and an optional cursor for the next page.",
+            "description": "Filtered audit events and an optional cursor for the next page. When the request has a page number, the response also carries page, totalCount, and totalPages.",
             "content": {
               "application/json": {
                 "schema": {
@@ -236,9 +239,18 @@
       "Cursor": {
         "name": "cursor",
         "in": "query",
-        "description": "Opaque keyset cursor returned by the preceding page.",
+        "description": "Opaque keyset cursor returned by the preceding page. Cannot be combined with page.",
         "schema": {
           "type": "string"
+        }
+      },
+      "Page": {
+        "name": "page",
+        "in": "query",
+        "description": "1-based page number. Returns that page plus totalCount and totalPages; the count makes it costlier than a cursor, and new events can shift pages while browsing. Cannot be combined with cursor.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
@@ -393,6 +405,19 @@
               "string",
               "null"
             ]
+          },
+          "page": {
+            "type": "integer",
+            "description": "Present only for a page-number request."
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "All events matching the filters. Present only for a page-number request."
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "totalCount divided by the page size, rounded up. Present only for a page-number request."
           }
         },
         "additionalProperties": false
