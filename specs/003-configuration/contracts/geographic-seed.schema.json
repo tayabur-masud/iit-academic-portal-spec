@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Bangladesh Geography Seed",
+  "description": "Owner-provided Division, District, and Upazila hierarchy with source/version citation. Geographic records contain names and parent structure, not codes. Semantic uniqueness and parent validation are performed by the importer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source", "divisions"],
+  "properties": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["citation", "version"],
+      "properties": {
+        "citation": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Approved official source citation; include a URL or document identifier."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version or publication date of the approved source."
+        }
+      }
+    },
+    "divisions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/division" }
+    }
+  },
+  "$defs": {
+    "division": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "districts"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "districts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/district" }
+        }
+      }
+    },
+    "district": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "upazilas"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "upazilas": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/upazila" }
+        }
+      }
+    },
+    "upazila": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

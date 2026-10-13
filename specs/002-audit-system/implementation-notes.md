@@ -154,3 +154,11 @@ Service README (audit section, configuration table, database accounts, fallback 
 retention, feature-owner guide, deployment notes), frontend README (audit feature, UTC timestamp, security note),
 `specs/design-system.md` (audit timestamp and paging convention), `specs/001-role-based-auth/quickstart.md`,
 `specs/002-audit-system/data-model.md` (retry stamps the Handled fields), and this file.
+
+## Follow-up found by feature 003 (2026-10-14)
+
+The design (T014) says the request context supplies the actor, but `IAuditEventRecorder.Stage` only took the correlation
+ID and source from it, so a feature that did not pass `ActorUserId` staged business events with no actor. `Stage` now
+defaults the actor to the signed-in session's user when the caller leaves it unset. `RecordSecurityAsync` is unchanged
+on purpose: a failed sign-in must record no account. Covered by `ConfigurationAuditTransactionTests`. The service README's
+"Audit integration for feature owners" now says so.
