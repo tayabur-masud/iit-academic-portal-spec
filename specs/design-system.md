@@ -1,6 +1,6 @@
 # IIT Academic Portal Design System
 
-**Status:** Brand colors and shared visual tokens are specified. Implementation-time contrast and responsive validation remain open as listed in Section 17.
+**Status:** IIT brand colors are unchanged. Shared typography, geometry, and shell dimensions are aligned to the supplied admin-template reference; implementation-time contrast and responsive validation remain open as listed in Section 17.
 **Scope:** Shared visual and interaction guidance for Admin, Student, Teacher, and Coordinator experiences.
 
 ## 1. Purpose and Authority
@@ -11,7 +11,9 @@ This document defines presentation conventions only. It does not define academic
 
 ## 2. Design Direction
 
-The interface is a clean, modern, professional academic administration tool. Favor clarity, scanability, predictable placement, and efficient common workflows over decoration. Use a restrained visual hierarchy, consistent spacing, and concise labels. All major patterns MUST work consistently across roles. Role-specific navigation and content may vary, but the visual language MUST NOT.
+The interface is a clean, modern, professional academic administration tool. Use the supplied TailwindAdmin template as a visual reference for its dashboard shell, compact information hierarchy, and restrained surfaces, not as a source of code or dependencies. Favor clarity, scanability, predictable placement, and efficient common workflows over decoration. Use a restrained visual hierarchy, consistent spacing, and concise labels. All major patterns MUST work consistently across roles. Role-specific navigation and content may vary, but the visual language MUST NOT.
+
+The template's palette is not adopted. IIT brand and semantic color values in this document remain authoritative; template colors, vendor stylesheets, and template-specific UI packages MUST NOT override them. Recreate approved visual patterns with the existing Angular and Tailwind CSS setup and the centralized tokens below.
 
 ## 3. Brand and Color System
 
@@ -51,13 +53,13 @@ Define hover, pressed/active, selected, focus, and disabled variants centrally. 
 
 ## 4. Typography
 
-Use `Roboto` as the primary Latin typeface and `Noto Sans Bengali` as the Bengali glyph fallback, followed by the system sans-serif fallback. When bundling font files, retain their license notices: Roboto is Apache License 2.0 and Noto Sans Bengali is SIL Open Font License 1.1. Do not copy or bundle operating-system fonts unless their terms permit it.
+Use `DM Sans` as the primary Latin typeface and `Noto Sans Bengali` as the Bengali glyph fallback, followed by the system sans-serif fallback. When bundling font files, retain their license notices; do not copy or bundle operating-system fonts unless their terms permit it. The current frontend loads the approved font families through its existing font stylesheet link; no font package is added by this guidance.
 
 | Role | Token | Guidance |
 |---|---|---|
-| Primary family | `--font-family-primary` | `Roboto`, then `Noto Sans Bengali` for Bengali glyphs, then system sans-serif |
-| Page title | `--font-size-page-title` | 1.5–2rem; one clear title per page |
-| Section heading | `--font-size-heading` | 1.125–1.5rem; consistent hierarchy |
+| Primary family | `--font-family-primary` | `DM Sans`, then `Noto Sans Bengali` for Bengali glyphs, then system sans-serif |
+| Page title | `--font-size-page-title` | 1.75rem (28px); one clear title per page |
+| Section heading | `--font-size-heading` | 1.3125rem (21px); consistent hierarchy |
 | Body | `--font-size-body` | 1rem base for comfortable reading |
 | Label/table | `--font-size-compact` | 0.875–1rem; do not make dense data difficult to scan |
 | Helper text | `--font-size-helper` | 0.8125–0.875rem; remain readable and high contrast |
@@ -68,9 +70,11 @@ Use weights 400 for body text, 500 for labels and navigation, 600 for headings a
 
 ### 5.1 Application layout
 
-Use a stable application shell with a consistent header, navigation region, main content area, and optional footer. The main content MUST be the primary visual focus. Use a centered content container with a recommended maximum width of 80rem and fluid side gutters; wide data tables may use the available content width. Keep page titles, breadcrumbs, actions, and content aligned to the same grid.
+Use a stable application shell with a consistent compact header, persistent navigation region, main content area, and optional footer. At desktop sizes, use the shared 16.875rem (270px) sidebar and 4.375rem (70px) header dimensions; the account section remains at the bottom of the sidebar, while the main content is the primary visual focus. Use a centered content container with a recommended maximum width of 80rem and fluid side gutters; wide data tables may use the available content width. Keep page titles, breadcrumbs, actions, and content aligned to the same grid.
 
 On desktop, persistent navigation may use a sidebar alongside the main area. Keep its width and collapsed behavior consistent throughout the application. On smaller screens, navigation MUST become a usable compact menu or drawer rather than compressing desktop navigation. Avoid nested cards and unnecessary columns.
+
+Use `.full-container` to fill the available parent width; it does not remove a parent or child max-width constraint. Apply the shared content maximum where page content should remain constrained.
 
 ### 5.2 Spacing and grid
 
@@ -109,13 +113,14 @@ All components MUST have consistent dimensions, typography, spacing, focus treat
 | Date picker | Enter or select a date. Use the same field structure and validation as other inputs. Display an unambiguous date format, support keyboard entry/navigation, and provide a text-entry path where practical. |
 | Search | Find or filter a collection. Use a labeled field, clear action when non-empty, and optional submit affordance. Preserve the query during result interaction where practical; distinguish no matches from an empty collection. |
 | Tables | Present comparable records for scanning. Use consistent column alignment, headers, row actions, sorting affordances, selection, loading, empty, and responsive behavior as specified in Section 8. |
+| Lists/list groups | Present related items with semantic `ul`/`ol` markup. Use `.list-group` with `.list-group-item`; add `.list-group-compact` for a 20rem maximum width or `.list-group-flush` for edge-to-edge separators. Use `.list-group-item-action` on a row link, `.list-group-icon` for a leading icon, and `.list-group-item-total` for a highlighted total. Match template geometry: 8px group radius, 12px vertical and 16px horizontal row padding, 14px text at 20px line height, and 8px row gaps (14px beside icons). Use `.list-marker` for a bulleted supporting list and `.list-checklist` for a check-mark list; their item spacing is 8px and 12px respectively. A `.badge-pill` can appear at the end of a row. Keep interactive rows keyboard accessible and at least 44px high; use a table for comparable multi-field records. |
 | Pagination | Navigate a bounded result set. Display current position and available navigation clearly; disable unavailable directions and preserve active filters/sort when moving pages. |
-| Cards | Group closely related summary or dashboard content. Use a simple surface, subtle border, consistent padding, and restrained radius. Do not nest cards or make a non-interactive card look clickable. |
+| Cards | Group closely related summary or dashboard content. Use `.card` for the surface and, for a template-style content wrapper, place `.card-body` as its direct child. The body uses 30px padding and replaces the root card's default padding. Use `.card-title` for 18px/28px semibold headings and `.card-subtitle` for 14px/20px secondary text. Keep a simple surface, subtle border, and restrained radius. Do not nest cards or make a non-interactive card look clickable. |
 | Modal/dialog | Focus a short, interruptive task. Use a clear title, concise content, and explicit actions. Trap and restore focus correctly; close with Escape when safe. Do not use for routine page content. |
 | Confirmation dialog | Confirm destructive or irreversible action. State the consequence plainly and name the affected item when possible. Make cancel easy to choose; label the destructive action explicitly and do not rely on color alone. |
 | Alerts | Keep persistent or page-level feedback visible in context. Use a semantic icon, concise heading/message, and optional dismissal only when safe. Provide success, information, warning, and error variants. |
 | Toast/notification | Report brief, non-blocking outcomes. Keep wording concise, avoid stacking excessive notifications, and allow enough time to read; critical errors require persistent in-page presentation instead. |
-| Badges/status indicators | Summarize a short state. Use consistent shape, size, semantic color, and text label. Do not use a badge for long explanations or encode state by color alone. Outcome badges (`badge-success`, `badge-error`) use a white surface with a border, because the semantic text colors do not reach 4.5:1 on the tinted default badge. |
+| Badges/status indicators | Summarize a short state. Use consistent shape, size, semantic color, and text label. `.badge-md` provides the template's 7px radius, 14px/20px semibold text, and 4px vertical/12px horizontal padding. `.badge-pill` provides a 24px-high pill with 12px text and 4px/8px padding; pair it with `.badge-pill-primary` for the IIT primary fill. Do not use a badge for long explanations or encode state by color alone. Use IIT semantic colors. Outcome badges (`badge-success`, `badge-error`) use a white surface with a border, because the semantic text colors do not reach 4.5:1 on the tinted default badge. |
 | Tabs | Switch among peer views within the same context. Keep labels short and active state obvious. Preserve keyboard arrow-key navigation and tab semantics; do not use tabs as a substitute for primary navigation. |
 | Breadcrumbs | Show the current location within a hierarchy. Include only navigable ancestors and a clear current-page label; use consistent separators and hide or collapse gracefully on narrow screens. |
 | Dropdown menus | Reveal a small set of related actions. Anchor to the trigger, group related items, support keyboard navigation and Escape, and use separators sparingly. Destructive actions remain clearly identified. |
@@ -140,9 +145,9 @@ Tables are for comparing records across consistent attributes. Use clear column 
 
 Sorting MUST be indicated on the active column and operable by keyboard. Filtering controls MUST be visibly associated with the table and distinguish active filters. Pagination MUST show the current page or range and preserve sort/filter state. Place row actions consistently, expose accessible names, and avoid making the entire row clickable when it contains independent controls.
 
-**Audit timestamps:** audit history shows every date-time as `yyyy-MM-dd HH:mm:ss` followed by the label "UTC", inside a `time` element with the ISO value in `datetime` (the shared `app-utc-timestamp` component). Date-range filters on those screens are labeled "(UTC)" and sent as UTC. Outcomes appear as text in a badge, never as color alone, and keyset paging shows "Page N" with Previous and Next because the total is not known.
+**Audit timestamps:** audit history shows every date-time as `yyyy-MM-dd HH:mm:ss` followed by the label "UTC", inside a `time` element with the ISO value in `datetime` (the shared `app-utc-timestamp` component). Date-range filters on those screens are labeled "(UTC)" and sent as UTC. Outcomes appear as text in a badge, never as color alone, and paged tables show "Showing X to Y of N events" with Previous, numbered page buttons (first and last page, a window around the current page, and an ellipsis where pages are skipped), and Next. The current page is marked with `aria-current="page"` and a filled button, not color alone.
 
-Loading MUST preserve the table's expected geometry. Empty data and no matching results MUST have distinct messages. On smaller screens, prioritize important columns and provide a usable horizontal-scroll region or an explicitly designed compact representation; do not silently clip critical values or actions. Keep table headers available to assistive technology and provide captions or an equivalent accessible name.
+Loading MUST preserve the table's expected geometry. When a reviewer changes page or filters, keep the current rows on screen, dimmed and marked `aria-busy`, with a spinner in the footer, until the new rows arrive; replacing the table with a spinner shrinks the page and throws the scroll position back to the top. Do not disable the control that was just activated, so keyboard focus stays on it. Empty data and no matching results MUST have distinct messages. On smaller screens, prioritize important columns and provide a usable horizontal-scroll region or an explicitly designed compact representation; do not silently clip critical values or actions. Keep table headers available to assistive technology and provide captions or an equivalent accessible name.
 
 ## 9. Navigation
 
@@ -152,7 +157,7 @@ Navigation MUST make the user's current location and available destinations unde
 - **Active role:** shown as a badge ("Role: Student"). For an account with several roles, a labelled "Active role" select replaces the badge.
 - **Sign out:** a full-width secondary button.
 
-On wide screens the shell fills the viewport and only the main content scrolls, so the account section is always visible. On mobile it appears at the bottom of the menu drawer, one tap from any page. The header holds only the application identity (the approved IIT logo at 40px tall, original aspect ratio, beside the portal name) and, on mobile, the menu control.
+On wide screens the shell fills the viewport and only the main content scrolls, so the account section is always visible. The main region is positioned (`relative`) so visually hidden text stays inside it; otherwise it stretches the page and adds a second, empty scrollbar. On mobile it appears at the bottom of the menu drawer, one tap from any page. The header holds only the application identity (the approved IIT logo at 40px tall, original aspect ratio, beside the portal name) and, on mobile, the menu control.
 
 Role-specific navigation may expose different destinations, but must use the same component, spacing, active-state, and naming conventions. The server remains authoritative for authorization; navigation visibility is not a security boundary. Use breadcrumbs for deep hierarchies. On mobile, use an accessible menu or drawer with a clear open/close control, sensible focus behavior, and enough touch space. Avoid duplicating the same destination in multiple navigation regions without a clear reason.
 
@@ -179,6 +184,8 @@ Show loading and validation states without moving controls unexpectedly. Authent
 ## 11. Dashboard Patterns
 
 Dashboards MUST begin with a clear page heading and prioritize the most relevant summary information. Use summary cards only for concise, comparable values; avoid decorative charts or dense card grids without a clear reading purpose. Recent activity, notifications, and quick actions should each have clear headings and predictable placement. Use the same card, typography, and spacing rules as other pages.
+
+For a template-informed dashboard, use Tailwind's generated `grid grid-cols-12 gap-6` utilities with responsive `col-span-*` utilities for widget placement. Use `.full-container` only to fill its parent; it does not remove a max-width constraint. Build summary widgets from `.card` and its direct `.card-body`, with `.card-title`, `.card-subtitle`, and `.badge-md` or `.badge-pill` as needed. Follow the reusable list and badge recipes in Section 6. Replace template palette classes such as `text-primary`, `bg-white`, or `text-dark` with the IIT color tokens in Section 3. Do not assume the template's ApexCharts or Tabler icon classes are available; adding their packages requires separate approval.
 
 Provide loading, empty, and error states for each dashboard region. Do not define role-specific dashboard content in this document. Avoid duplicate summaries that compete with the primary content and avoid placing cards inside cards.
 
@@ -302,12 +309,13 @@ The values are centralized here to prevent local component overrides and repeate
 }
 ```
 
-Use radii up to 0.5rem for most controls and cards; reserve larger radii for a genuine layout need. Shadows MUST be subtle and limited to overlays that require elevation. Keep token scales stable; do not add near-duplicate values for one-off component styling. Document and review any token changes because they affect all modules.
+Use the template-informed compact shape scale: 0.25rem (4px) for small controls and 0.4375rem (7px) for standard cards/containers; do not exceed 0.5rem (8px) for routine controls or cards. Shadows MUST be subtle and limited to overlays that require elevation. Keep token scales stable; do not add near-duplicate values for one-off component styling. Document and review any token changes because they affect all modules.
 
 ## 16. UI Consistency Rules
 
 - Do not introduce arbitrary or unapproved brand colors; use the centralized semantic tokens.
 - Reuse established components and patterns before creating a new visual pattern.
+- Use DM Sans and the template-informed compact sizes/radii through centralized tokens; do not copy template CSS or add its vendor packages.
 - Keep spacing, typography, control sizing, border, and focus treatments consistent across roles.
 - Maintain a clear button hierarchy with one primary action per context where practical.
 - Present labels, validation, errors, loading, empty, and success states consistently.
@@ -323,3 +331,4 @@ Complete these validation items against the implementation and supported viewpor
 
 1. Verify the supplied neutral, interaction, status, and control-border colors against actual component states and adjacent surfaces during implementation.
 2. Confirm that the suggested layout dimensions and breakpoints fit the supported devices and existing frontend conventions.
+3. Review existing authentication, shell, and audit screens against the template-informed typography, sidebar, header, list-group, and surface guidance at supported breakpoints; retain the IIT color tokens.
