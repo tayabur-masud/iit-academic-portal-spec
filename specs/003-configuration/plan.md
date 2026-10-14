@@ -6,7 +6,7 @@
 
 ## Summary
 
-Deliver twelve independently modeled reference entities for Admin maintenance: eight academic catalogs, Batches, and the Division/District/Upazila hierarchy. Academic Sessions have globally unique normalized labels, every Batch requires one Session reference, and Batch names are unique within their Degree. Keep the implementation in the existing Angular + ASP.NET Core layered monolith. Enforce normalized uniqueness, parent/reference integrity, active-role authorization, non-cascading deactivation, and same-unit-of-work business audit. Load the owner-approved geographic JSON through a controlled all-or-nothing importer; do not invent seed data or introduce new runtime dependencies.
+Deliver thirteen independently modeled reference entities for Admin maintenance: nine academic catalogs (halls were added on 2026-10-14), Batches, and the Division/District/Upazila hierarchy. Academic Sessions have globally unique normalized labels, every Batch requires one Session reference, and Batch names are unique within their Degree. Keep the implementation in the existing Angular + ASP.NET Core layered monolith. Enforce normalized uniqueness, parent/reference integrity, active-role authorization, non-cascading deactivation, and same-unit-of-work business audit. Load the owner-approved geographic JSON through a controlled all-or-nothing importer; do not invent seed data or introduce new runtime dependencies.
 
 ## Technical Context
 
@@ -26,7 +26,7 @@ Deliver twelve independently modeled reference entities for Admin maintenance: e
 
 **Constraints**: Only the session's active Admin role authorizes writes. Use existing REST, Problem Details, anti-forgery, audit, and design-system conventions. Preserve references when records are deactivated; use restrictive foreign keys. Geographic data must come from an owner-supplied JSON file citing the approved source/version; validate the complete hierarchy before committing any seed rows. No student/teacher workflows, new role, service, framework, or audit system.
 
-**Scale/Scope**: Eight independent catalogs (institution, board, group, examination type, degree, semester, academic session, designation), one batch resource, and three geographic levels. Geographic row counts are determined by the approved owner dataset and are not assumed here.
+**Scale/Scope**: Nine independent catalogs (institution, board, group, examination type, degree, semester, academic session, designation, hall), one batch resource, and three geographic levels. Geographic row counts are determined by the approved owner dataset and are not assumed here.
 
 ## Constitution Check
 
@@ -83,7 +83,7 @@ iit-academic-portal/src/app/features/configuration/
 ├── configuration-api.ts       (typed client for every resource)
 ├── configuration.models.ts    (item types and the descriptor of each resource)
 ├── configuration-home.*       (landing page grouping the resources)
-└── catalogs/                  (the generic list and form that serve all twelve resources)
+└── catalogs/                  (the generic list and form that serve all thirteen resources)
 ```
 
 **Structure Decision**: Extend the existing Domain → Application → Infrastructure → API split and Angular feature layout. Keep EF mappings in the current `PortalDbContext` convention, use the existing migrations folder and xUnit/Vitest projects, and do not add a project or package solely for this feature.

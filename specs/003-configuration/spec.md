@@ -10,6 +10,12 @@
 
 ## Clarifications
 
+### Session 2026-10-14
+
+- Q: Should entities record who created and last changed them, and when? → A: Yes, every business entity, automatically (created by, created time, last modified by, last modified time), and the rule is written down so future entities get it too. It is delivered as a shared `AuditedEntity` base class stamped by the database context from the server clock and the signed-in account, with a test that fails when a new entity is neither derived nor explicitly exempt (FR-025; tasks T049 to T053).
+- Q: Should every delete be a soft delete? → A: Yes. Deleting a configuration record marks it deleted (who and when are kept) instead of removing the row; the record disappears from every list, lookup, and selector, and the portal has no way to restore it. A record that live records still refer to cannot be deleted (it is refused and deactivation is offered, as before). A deleted record's name and code can be used again, so uniqueness applies to live records only. This replaces the earlier requirement for physical deletion (FR-016); tasks T045 to T048.
+- Q: What is a Hall, and what does it hold? → A: A university residential hall, an independent reference catalog (no link to students in this feature). It has a required name, an optional code that is unique within halls, an optional address, and an active/inactive status. Added after the original scope; it is delivered as an addendum (tasks T038 to T043). The owner supplied the existing halls (23 halls and hostels of the University of Dhaka), loaded by a saved, re-runnable SQL seed with fixed identifiers and the default address "University of Dhaka, Dhaka-1000, Bangladesh" for every hall.
+
 ### Session 2026-10-13
 
 - Q: At what scope should a Batch name be unique? → A: A Batch name is unique within a Degree; different Degrees may reuse the same name.
@@ -30,12 +36,12 @@ As an authorized Admin, I need to maintain the academic reference catalogs used 
 **Acceptance Scenarios**:
 
 1. **Given** an Admin creates or edits an educational institution, **When** the request is valid, **Then** the institution's name, fixed type (School, College, or University), optional code/address, and active status are maintained without creating student academic history.
-2. **Given** an Admin maintains an education board, education group, examination type, degree, semester, or designation, **When** a valid create or update is submitted, **Then** the corresponding independent catalog record is maintained without an unintended relationship to another catalog, student, or teacher.
+2. **Given** an Admin maintains an education board, education group, examination type, degree, semester, designation, or hall, **When** a valid create or update is submitted, **Then** the corresponding independent catalog record is maintained without an unintended relationship to another catalog, student, or teacher.
 3. **Given** an Admin submits a duplicate normalized name or optional code for the same catalog, **When** the record is validated, **Then** the duplicate is rejected with a clear field-level explanation.
 4. **Given** an Admin deactivates a catalog record, **When** future features request selectable configuration values, **Then** the inactive record is not offered for new selection while remaining available for existing reference display.
 5. **Given** a user without authorized Admin access calls a configuration-management operation directly, **When** the server evaluates the request, **Then** it denies the operation regardless of interface visibility.
 6. **Given** an Admin opens the signed-in navigation, **When** the active role is Admin, **Then** the Configuration menu entry appears in the Admin module; it is absent for other active roles.
-7. **Given** an Admin deletes an unreferenced catalog record, **When** the delete succeeds, **Then** the record is removed and an audit event is committed; a record with dependents cannot be physically deleted and remains available for deactivation instead.
+7. **Given** an Admin deletes an unreferenced catalog record, **When** the delete succeeds, **Then** the record is soft deleted (marked deleted, hidden from every list and selector, and kept in the database) and an audit event is committed; a record with dependents cannot be deleted and remains available for deactivation instead.
 
 ### User Story 2 - Configure Academic Batches (Priority: P1)
 
@@ -94,7 +100,7 @@ As an institutional administrator, I need configuration changes authorized, audi
 - Two catalog types contain the same name, such as an examination type and an IIT degree; they remain independent and do not conflict across catalog types.
 - A referenced Degree or starting Semester is deactivated; existing Batch references and display remain intact, new Batch assignments to it are blocked, and no Batch is cascade-deactivated.
 - A Division or District with children is deactivated; existing geographic parent-child links remain intact, new children or assignments to the inactive parent are blocked, and no descendant is cascade-deactivated.
-- A Division has Districts or a District has Upazilas; physical deletion cannot cascade and must not create orphan rows.
+- A Division has Districts or a District has Upazilas; deleting one cannot cascade and must not leave a live child pointing at a deleted parent.
 - A geographic data load contains duplicate, missing-parent, or unknown records; loading reports the invalid entries and does not silently create partial or invented hierarchy data.
 - An Admin submits an invalid parent ID or a District/Upazila whose parent is from another hierarchy branch; reject without changing persisted relationships.
 - A user changes the active role away from Admin while on a configuration page; subsequent writes are denied by the server and the UI must not preserve Admin write access.
@@ -109,7 +115,7 @@ As an institutional administrator, I need configuration changes authorized, audi
 - Only a session actively acting in the Admin role may create, update, deactivate, or delete configuration records. The server checks the current session role on every request; assigned roles, Angular navigation, or a client-supplied role do not grant permission.
 - The Configuration menu entry and management screens MUST appear only within the Admin module. Hiding the entry is not an authorization boundary; the server MUST protect every management endpoint.
 - Institution type is a fixed controlled value: School, College, or University. No separate institution-type management screen is part of this feature.
-- Educational institutions, education boards, education groups, examination types, IIT degrees/programs, semesters, and designations are independent catalogs except for the explicitly stated Batch and geographic relationships.
+- Educational institutions, education boards, education groups, examination types, IIT degrees/programs, semesters, designations, and halls are independent catalogs except for the explicitly stated Batch and geographic relationships.
 - SSC/O-Level, HSC/A-Level, Bachelor, Master, PGDIT, and Others are previous-education examination/qualification categories, not IIT degree records.
 - Academic Sessions are an independent catalog with a globally unique normalized label; they are not authentication sessions and do not represent semester progression.
 - A Batch references exactly one IIT degree/program, exactly one starting semester, and exactly one Academic Session. Degree, Semester, and Academic Session remain independently maintainable; this does not implement semester progression.
@@ -117,7 +123,7 @@ As an institutional administrator, I need configuration changes authorized, audi
 - Names are compared after trimming and case normalization within their own catalog. Optional non-empty codes are normalized and unique within the corresponding academic catalog. Geographic Division names are unique globally; District and Upazila names are unique within their parent. Geographic records do not have codes. Batch names are unique within their Degree; a different Degree may reuse the same name.
 - When a referenced Degree, Semester, Academic Session, Division, or District is deactivated, preserve existing references and their display, block new assignments to it, and do not cascade deactivation to dependents.
 - Successful configuration changes use the existing audit system and its current Admin-session authorization. Mandatory change audit is committed atomically with the configuration change; validation errors are not treated as committed business changes.
-- Admins may physically delete an unreferenced configuration record. If any record depends on it, deletion MUST be rejected without cascading and the Admin MUST be able to deactivate it instead.
+- Admins may delete an unreferenced configuration record. A delete is soft: the record is marked deleted, hidden everywhere, and kept in the database, and its name and code are free to use again. If any live record depends on it, deletion MUST be rejected without cascading and the Admin MUST be able to deactivate it instead.
 
 ### Functional Requirements
 
@@ -144,7 +150,7 @@ As an institutional administrator, I need configuration changes authorized, audi
 
 #### Lifecycle, authorization, and audit
 
-- **FR-016**: The Admin interface MUST support physical deletion of an unreferenced configuration record. If a record has dependent records, deletion MUST be rejected with a clear explanation and no cascade or orphaning; the interface MUST offer deactivation as the safe alternative.
+- **FR-016**: The Admin interface MUST support soft deletion of an unreferenced configuration record: the record is marked deleted with the time and the account that deleted it, is excluded from every list, lookup, and selector, can no longer be read or changed, and is not restorable from the portal. Normalized name and code uniqueness apply to records that are not deleted. If a record has dependent records, deletion MUST be rejected with a clear explanation and no cascade or orphaning; the interface MUST offer deactivation as the safe alternative.
 - **FR-017**: Inactive records MUST be excluded from new assignment selectors and remain identifiable in existing-reference views. Deactivating a referenced Degree, Semester, Academic Session, Division, or District MUST preserve existing links, block new assignments to that record, and MUST NOT cascade deactivation to dependents.
 - **FR-018**: Every configuration create, update, deactivate, and delete operation MUST be authorized server-side against the current session's active Admin role, regardless of UI visibility or client-submitted role information.
 - **FR-019**: Successful configuration create, update, deactivate, and delete operations MUST use the existing audit system and record actor, action, entity type, record identifier, UTC timestamp, outcome, and allowlisted change summary. The event and configuration change MUST commit atomically where the existing audit contract requires it.
@@ -152,6 +158,8 @@ As an institutional administrator, I need configuration changes authorized, audi
 - **FR-021**: Administrative list/search experiences MUST show loading, empty, error, and inactive states; support search/filter/pagination where the catalog volume warrants it; and follow the shared design system and accessibility rules.
 - **FR-022**: The frontend MUST provide a “Configuration” menu entry and management route under the Admin module (`/admin/configuration`). The entry MUST be visible only when the session's active role is Admin; direct navigation by other roles MUST be denied.
 - **FR-023**: The portal MUST provide Admins with create, view, update, list, search, filter, deactivate, and delete-if-unreferenced operations for Academic Sessions. Each Session MUST have a required label that is unique after normalization across the Session catalog; Batches may share a Session, while new Batch assignments to an inactive Session are rejected.
+- **FR-024**: The portal MUST provide independent Halls (university residential halls) with a required name, an optional code, an optional address, and active/inactive status, maintained with the same operations, normalized name and code uniqueness, deactivation, delete-if-unreferenced, authorization, and audit rules as the other independent catalogs. A Hall MUST NOT be associated with a student, teacher, or other catalog in this feature.
+- **FR-025**: Every configuration record MUST record who created it and when, and who last modified it and when. The values MUST come from the server clock and the authenticated session and MUST NOT be accepted from a client; on creation the last-modified values equal the created values, and any later change, including deactivation and deletion, updates only the last-modified values. The account is the stable account identifier, and is empty when no signed-in account made the change (a background process or a seed script). The same rule MUST apply to every future business entity through the shared base class described in the service README.
 
 #### Acceptance Criteria
 
@@ -173,6 +181,7 @@ As an institutional administrator, I need configuration changes authorized, audi
 - **Degree**: Independent IIT-offered degree/program; name, optional code, status.
 - **Semester**: Independent semester label and optional domain-required order; status.
 - **Designation**: Independent teacher designation catalog; name, optional code, status.
+- **Hall**: Independent university residential hall catalog; required name, optional code, optional address, status.
 - **Academic Session**: Independent catalog entry with a required label, normalized label, and status; globally unique label and may be referenced by multiple Batches, each of which requires one Session.
 - **Batch**: Cohort with one Degree reference, one starting Semester reference, one Academic Session reference, name, and status.
 - **Division**: Bangladesh administrative top-level geographic reference with name/status and no code.
