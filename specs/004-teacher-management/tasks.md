@@ -162,4 +162,10 @@ Coordinate shared PortalDbContext and TeacherContracts edits before integrating 
 
 ### Format Validation
 
-Every task line starts `- [ ] T###`; `[P]` appears only for independent work, and every user-story task has `[US1]`, `[US2]`, or `[US3]`. Setup, Foundational, and Polish tasks have no story label. IDs are sequential and every task description contains an exact file path.
+Every task line starts `- [ ] T###` or `- [X] T###`; `[P]` appears only for independent work, and every user-story task has `[US1]`, `[US2]`, or `[US3]`. Setup, Foundational, and Polish tasks have no story label. IDs are sequential and every task description contains an exact file path.
+
+## Phase 7: Convergence
+
+- [X] T029 Extend the API authorization matrix to verify profile/account state, roles, and target-user sessions stay unchanged after denied requests; assert no business audit events are added and authenticated 403s produce the expected `access.denied` security events in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/TeacherManagement/TeacherManagementAuthorizationTests.cs` per FR-007/SC-003/T027 (partial).
+- [X] T030 Add PostgreSQL-backed concurrent last-Admin tests that invoke the actual role-removal and deactivation application services, rather than duplicating the lock/check/write sequence; assert one conflicting operation is rejected and an active Admin remains in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/TeacherManagement/TeacherManagementPostgresTests.cs` per FR-014/plan-concurrency/T025 (partial).
+- [X] T031 Add a failed-audit test through `TeacherProfileService.UpdateAsync` proving profile fields and Identity email/username remain unchanged and no `teacher.updated` event persists when audit staging fails in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/TeacherManagement/TeacherProfileTests.cs` per FR-009/T015 (partial).
