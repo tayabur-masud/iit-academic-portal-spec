@@ -55,9 +55,9 @@ A document that breaks the schema (for example one with a `code` field) returns 
 | Check | Result |
 |---|---|
 | `dotnet build -c Release` | 0 warnings, 0 errors |
-| `dotnet test`, SQLite pipeline only | 437 passed, 30 PostgreSQL tests skipped, 0 failed |
-| `dotnet test` with `AUDIT_TEST_POSTGRES` (PostgreSQL 18.3) | **467 passed, 0 skipped, 0 failed** (includes the Configuration migration, unique-index, restrictive-key, and delete-integrity tests as the restricted runtime role) |
-| Frontend `ng test` (Vitest) | 103 passed (15 files), 0 failed |
+| `dotnet test`, SQLite pipeline only | 448 passed, 30 PostgreSQL tests skipped, 0 failed |
+| `dotnet test` with `AUDIT_TEST_POSTGRES` (PostgreSQL 18.3) | **478 passed, 0 skipped, 0 failed** (includes the Configuration migration, unique-index, restrictive-key, and delete-integrity tests as the restricted runtime role) |
+| Frontend `ng test` (Vitest) | 110 passed (15 files), 0 failed |
 | Frontend `ng build` | Succeeds |
 | Live API run against PostgreSQL (scenarios 2, 3, 4, 6, 7; scenario 5 for validate-only and refusal) | 35 of 35 checks passed; all test records removed afterwards |
 | Live UI run in headless Chrome (home, lists, forms, batch selectors, cascading upazila form, delete conflict and "Deactivate instead") | axe-core WCAG 2.x A/AA: no violations on any screen; no second scrollbar; no horizontal overflow at 1280, 768, 375, and 320 px |
