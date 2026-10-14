@@ -34,6 +34,8 @@ Decisions made while building, not stated in the spec:
 
 - Configuration lists use the same numbered pager as audit history (decided 2026-10-14): the service takes a `page` parameter and
   returns the total count and page count, the cursor mode stays available, and the pager is a shared component used by both screens.
+- Every paged table has an "Items per page" choice (10, 25, 50, 100), shared across tables and kept in memory only (decided 2026-10-14);
+  it is part of the shared pager, so audit history has it too. The services already accepted 1 to 100, so no API change was needed.
 - An update that changes nothing is a no-op: no write and no audit event.
 - A reference that is unchanged on update is accepted even if its record was later deactivated; a new or changed
   reference must be active.
@@ -50,7 +52,7 @@ Decisions made while building, not stated in the spec:
 
 ## Verification
 
-See the Verification Record in `quickstart.md`: 467 service tests with PostgreSQL, 103 frontend tests, 35 live API
+See the Verification Record in `quickstart.md`: 478 service tests with PostgreSQL, 110 frontend tests, 35 live API
 checks, and a live headless-Chrome run with axe-core on every Configuration screen.
 
 ## Not done

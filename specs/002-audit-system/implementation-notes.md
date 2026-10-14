@@ -162,3 +162,9 @@ ID and source from it, so a feature that did not pass `ActorUserId` staged busin
 defaults the actor to the signed-in session's user when the caller leaves it unset. `RecordSecurityAsync` is unchanged
 on purpose: a failed sign-in must record no account. Covered by `ConfigurationAuditTransactionTests`. The service README's
 "Audit integration for feature owners" now says so.
+
+## Items per page (2026-10-14)
+
+Audit history now has the shared pager's "Items per page" choice (10, 25, 50, 100; default 25), like every paged table, with the
+choice remembered in memory across tables. The `pageSize` parameter and its limit of 100 were already in the contract, so
+the service code and the OpenAPI document did not change; tests now exercise all four sizes (10, 25, 50, 100) against 105 events.
