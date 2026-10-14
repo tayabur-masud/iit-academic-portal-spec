@@ -8,7 +8,7 @@
 - State-changing requests require the existing `X-CSRF-Token` anti-forgery header.
 - JSON request/response DTOs are explicit and do not expose EF entities or normalized comparison fields.
 - Invalid values, duplicate normalized values, and invalid references return HTTP 400 `ValidationProblemDetails` with field-keyed errors. Anonymous requests return 401; authenticated non-Admin requests return 403.
-- Create returns 201 with the resource representation and `Location`; read/update return 200. Updates use PUT with the full writable representation. Set `isActive: false` in PUT to deactivate. `DELETE /{id}` physically deletes an unreferenced record and returns 204; it returns 409 when dependent records exist. Deletion never cascades; use deactivation for referenced records.
+- Create returns 201 with the resource representation and `Location`; read/update return 200. Updates use PUT with the full writable representation. Set `isActive: false` in PUT to deactivate. `DELETE /{id}` soft deletes an unreferenced record and returns 204; it returns 409 when live dependent records exist. The record is kept in the database but is no longer returned by any route (GET, PUT, and DELETE on it return 404), is excluded from lists and counts, and its name and code can be used again. Deletion never cascades; use deactivation for referenced records.
 - Every successful mutation stages an allowlisted business event through the existing audit recorder in the same transaction. The client cannot submit audit events.
 
 ## Resources
@@ -23,12 +23,13 @@
 | `/api/admin/configuration/semesters` | `name`, `isActive` | Independent of Degree and Batch. |
 | `/api/admin/configuration/academic-sessions` | `name`, `isActive` | Globally unique normalized name; a Session is distinct from authentication sessions and may be shared by Batches. |
 | `/api/admin/configuration/designations` | `name`, optional `code`, `isActive` | No Teacher assignment in this feature. |
+| `/api/admin/configuration/halls` | `name`, optional `code`, optional `address`, `isActive` | University residential halls. Independent of students and every other resource. |
 | `/api/admin/configuration/batches` | `name`, `degreeId`, `startingSemesterId`, `academicSessionId`, `isActive` | All three references are required and must identify active records. Normalized name uniqueness is within Degree. |
 | `/api/admin/configuration/geography/divisions` | `name`, `isActive` | Name is unique globally. Geographic records have no code field. |
 | `/api/admin/configuration/geography/districts` | `divisionId`, `name`, `isActive` | Name is unique within Division; parent must exist and be active for new/reassigned children. |
 | `/api/admin/configuration/geography/upazilas` | `districtId`, `name`, `isActive` | Name is unique within District; parent must exist and be active for new/reassigned children. |
 
-For each collection, expose `GET` (list) and `POST` (create); for each `/{id}`, expose `GET` (detail), `PUT` (update/deactivate), and `DELETE` (delete if unreferenced). IDs are UUIDs. Responses add `id` and the persisted display fields; they never return normalized fields. A blocked delete returns `409 Conflict` with a safe explanation and the option to deactivate; a missing ID returns 404.
+For each collection, expose `GET` (list) and `POST` (create); for each `/{id}`, expose `GET` (detail), `PUT` (update/deactivate), and `DELETE` (soft delete if unreferenced). IDs are UUIDs. Responses add `id` and the persisted display fields; they never return normalized fields. A blocked delete returns `409 Conflict` with a safe explanation and the option to deactivate; a missing ID returns 404.
 
 ## Collection Queries and Responses
 
@@ -46,6 +47,8 @@ For each collection, expose `GET` (list) and `POST` (create); for each `/{id}`, 
 - Feature-owned event names follow `configuration.{resource}.{created|updated|deactivated|deleted}`. Metadata and change summaries are allowlisted and contain no unrelated personal data. A successful seed import records source citation/version and per-level counts in one bulk event.
 
 ## Implementation Notes
+
+- Every record in a response also carries `createdAtUtc`, `createdByUserId`, `createdBy`, `lastModifiedAtUtc`, `lastModifiedByUserId`, and `lastModifiedBy` (2026-10-14). The times are UTC and always present. The account ids are omitted when no signed-in account made the change (a seed script or a background process). `createdBy` and `lastModifiedBy` are the accounts' current emails, resolved when the record is read and omitted when the account was removed. They are set by the server and are not writable: a request that contains any of them is rejected with 400.
 
 Recorded when the feature was built (2026-10-14):
 
