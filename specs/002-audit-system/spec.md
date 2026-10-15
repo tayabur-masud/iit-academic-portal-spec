@@ -12,7 +12,7 @@
 
 ### Session 2026-10-13
 
-- Q: How should the audit table footer show pages? → A: Numbered pages with a total count (1 2 3 … 40), chosen over cursor-only Previous/Next. The screen uses a `page` parameter that returns the total; the cursor remains for clients that do not need a count. Trade-off accepted: while a reviewer browses, newly arrived events can shift the numbered pages, which cursor paging avoids.
+- Q: How should the audit review screen load long result sets? → A: Use infinite scrolling with stable keyset cursors and bounded batches that append as the reviewer nears the end. Do not show numbered page controls, totals, or an items-per-page selector. The API may retain its `page` parameter for non-UI clients, but the browser uses cursor mode.
 
 ### Session 2026-10-09
 
@@ -176,7 +176,7 @@ As an institutional security owner, I need audit history to resist unauthorized 
 #### Search, retention, and operations
 
 - **FR-018**: Authorized reviewers MUST be able to filter events by UTC date/time range, actor, action type, entity type, entity identifier, outcome, and correlation/request identifier; supplied filters MUST combine predictably. A supplied start time is inclusive and a supplied end time is exclusive.
-- **FR-019**: Search results MUST support bounded pagination, default to newest-first order, and use a stable tie-breaker so concurrent writes do not cause avoidable omissions or duplicates across pages. Reviewers MUST be able to jump to any page by number, with the total number of matching events and pages shown; this numbered mode is an accepted exception to the no-shift guarantee, which cursor paging keeps.
+- **FR-019**: Search results MUST be retrieved in bounded batches, default to newest-first order, and use a stable keyset cursor/tie-breaker so concurrent writes do not cause avoidable omissions or duplicates. The browser review UI MUST append subsequent batches with infinite scrolling, preserve filters, and provide an accessible manual load-more fallback; it MUST NOT show numbered page controls, total-page counts, or an items-per-page selector. The API MAY retain numbered-page parameters for non-UI clients, but the portal UI MUST use cursor mode.
 - **FR-020**: Authorized reviewers MUST be able to open a detailed event view containing the event's safe metadata and change summary without exposing excluded values. The actor is shown by its stable identifier together with the account email resolved when the event is viewed, or "(account removed)" when the account no longer exists.
 - **FR-021**: Search MUST validate date-range inputs and return understandable empty, invalid-filter, loading, and error states consistent with [the project design system](../design-system.md).
 - **FR-022**: The system MUST store timestamps in UTC and display them with an explicit time-zone indication in the user's configured display time zone or, if none is configured, UTC.
@@ -237,7 +237,7 @@ As an institutional security owner, I need audit history to resist unauthorized 
 - Each owning feature is responsible for approving its allowlist of fields whose previous and new values are safe to retain. Until a value is allowlisted, store no before/after value for that field.
 - No institutional retention duration has been approved. Records remain until an approved policy is configured; the system must not infer or invent a duration.
 - Security events use a durable, monitored retry/recovery mechanism independent of the primary authentication or authorization decision; its technology and operational thresholds are selected during planning, not presumed in this specification.
-- Pagination uses a default page size of 25 and a maximum page size of 100; exact user-interface presentation follows the design system.
+- Audit retrieval uses bounded batches, default size 25 and maximum size 100. The browser uses cursor-based infinite scrolling; any API numbered-page mode is for non-UI clients only.
 - If a user has no configured display time zone, audit timestamps are shown in UTC with that zone identified.
 - Database-level enforcement for the application's append/read-only audit access is evaluated during planning. This does not guarantee protection from privileged database administrators or superusers.
 - Hash chains, external tamper-evident storage, and immutable archival infrastructure are optional enhancements to evaluate against project needs; they are not mandatory without approval.

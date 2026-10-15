@@ -22,7 +22,7 @@ Allow active Admins to manage Teacher profiles linked one-to-one to Identity use
 
 **Project Type**: Existing layered monolith with separate Angular frontend and ASP.NET Core API submodules.
 
-**Performance Goals**: No feature-specific numeric latency target is set. Use bounded pagination for the teacher directory and avoid loading unnecessary user or role data.
+**Performance Goals**: No feature-specific numeric latency target is set. Use bounded batches with infinite loading for the teacher directory and avoid loading unnecessary user or role data.
 
 **Constraints**: Only an active Admin may manage teacher profiles or role assignments. Teacher remains assigned for active profiles; Admin may be assigned/removed, Student is prohibited, and Coordinator is system-derived. Keep one active Admin account at all times. Teacher creation creates a pending account with no email send or alternate password handoff in this feature; email integration/delivery tests are deferred. Deactivation disables the account, revokes every active session, and preserves records/history. Batch-coordinator assignment storage/workflow is outside this feature; its future owner must call the defined role-sync integration. Use existing audit and design-system conventions.
 

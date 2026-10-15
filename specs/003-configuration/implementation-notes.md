@@ -32,8 +32,8 @@ behavior, routes, and rules are unchanged.
 
 Decisions made while building, not stated in the spec:
 
-- Configuration lists use the same numbered pager as audit history (decided 2026-10-14): the service takes a `page` parameter and
-  returns the total count and page count, the cursor mode stays available, and the pager is a shared component used by both screens.
+- Configuration lists now use cursor-based infinite loading: each response appends a bounded batch as the reader nears the end,
+  with a manual Load more fallback and no numbered controls. The API retains its `page` response mode for non-UI compatibility.
 - The seed scripts were re-checked after soft delete and the audit columns (T054). The columns need no change (defaults cover them), but the
   district and upazila scripts could attach new rows to a deleted parent, because raw SQL does not go through the application's deleted-row
   filter; they now look up live parents only and stop with an error if a parent is missing or deleted.
@@ -54,8 +54,7 @@ Decisions made while building, not stated in the spec:
   of seed (`seed-divisions.sql`, `seed-districts.sql`, `seed-upazilas.sql`, T044, tested in `GeographySeedScriptTests`); the Development
   database's geography, first loaded through the import endpoint with random ids, was replaced by the fixed-id seed after confirming the two
   were identical by name and parent, and a second run left it unchanged.
-- Every paged table has an "Items per page" choice (10, 25, 50, 100), shared across tables and kept in memory only (decided 2026-10-14);
-  it is part of the shared pager, so audit history has it too. The services already accepted 1 to 100, so no API change was needed.
+- Infinite-loading lists use bounded API batches (25 by default, maximum 100); no page-size selector is presented in the browser.
 - An update that changes nothing is a no-op: no write and no audit event.
 - A reference that is unchanged on update is accepted even if its record was later deactivated; a new or changed
   reference must be active.

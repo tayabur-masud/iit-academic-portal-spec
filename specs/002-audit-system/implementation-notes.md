@@ -64,16 +64,14 @@ to start unless `AuditFallback:Sink` is `File` with a `Directory`.
   shapes did. No index was added; the existing indexes were sufficient.
 - **Volume**: 1,000,000 events confirmed by the owner on 2026-10-09. Repeat on production-like hardware before release.
 
-### Numbered pages (added 2026-10-13)
+### Infinite-loading UI and numbered API compatibility (updated 2026-10-15)
 
-The review screen now shows numbered pages with a total (decision recorded in `spec.md`, 2026-10-13), through a
-`page` parameter that also returns `totalCount` and `totalPages`. Measured the same way as above on 1,000,000
-events (scratch database, `pgbench`, 20 runs per shape; page of 25, offset paging, plus a `count(*)` with the same
-filters): `count(*)` 64 ms median and 158 ms at the 95th percentile for the unfiltered table; the last page of the
-unfiltered table (offset 999,975) 200 ms median and 464 ms at the 95th percentile; a middle page 32 ms median; every
-filtered shape was faster. One numbered request is a count plus a page, so the worst case is about 0.6 s, inside the
-3 s target. Trade-off: new events can shift numbered pages while someone browses; cursor paging, still available,
-cannot.
+The browser review screen uses stable cursor batches and infinite loading, with an accessible Load more fallback and no
+numbered controls or page-size selector. The API retains its `page` parameter for non-UI clients that require totals.
+Existing measurements over 1,000,000 events (scratch database, `pgbench`, 20 runs per shape) apply to that compatibility
+mode: `count(*)` 64 ms median and 158 ms at the 95th percentile for the unfiltered table; the last page of the unfiltered
+table (offset 999,975) 200 ms median and 464 ms at the 95th percentile; a middle page 32 ms median; every filtered shape
+was faster. The browser does not use this offset/count mode.
 
 ## Contract comparison (T051)
 
@@ -163,8 +161,7 @@ defaults the actor to the signed-in session's user when the caller leaves it uns
 on purpose: a failed sign-in must record no account. Covered by `ConfigurationAuditTransactionTests`. The service README's
 "Audit integration for feature owners" now says so.
 
-## Items per page (2026-10-14)
+## Bounded batch size (updated 2026-10-15)
 
-Audit history now has the shared pager's "Items per page" choice (10, 25, 50, 100; default 25), like every paged table, with the
-choice remembered in memory across tables. The `pageSize` parameter and its limit of 100 were already in the contract, so
-the service code and the OpenAPI document did not change; tests now exercise all four sizes (10, 25, 50, 100) against 105 events.
+The browser loads 25 events per cursor batch by default, with a maximum of 100; it exposes no page-size selector. The API's
+`pageSize` remains bounded for clients and is validated independently of the browser UI.

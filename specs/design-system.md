@@ -11,7 +11,7 @@ This document defines presentation conventions only. It does not define academic
 
 ## 2. Design Direction
 
-The interface is a clean, modern, professional academic administration tool. Use the supplied TailwindAdmin template as a visual reference for its dashboard shell, compact information hierarchy, and restrained surfaces, not as a source of code or dependencies. Favor clarity, scanability, predictable placement, and efficient common workflows over decoration. Use a restrained visual hierarchy, consistent spacing, and concise labels. All major patterns MUST work consistently across roles. Role-specific navigation and content may vary, but the visual language MUST NOT.
+The interface is a clean, modern, professional academic administration tool. Use the supplied TailwindAdmin template as a visual reference for its dashboard shell, compact information hierarchy, and restrained surfaces. Use the ReadymadeUI Tailwind component catalog as a reference for compact header and control geometry, not as a second component framework. Adapt useful patterns to Angular and the tokens below rather than copying a marketing navbar into the application shell. Favor clarity, scanability, predictable placement, and efficient common workflows over decoration. Use a restrained visual hierarchy, consistent spacing, and concise labels. All major patterns MUST work consistently across roles. Role-specific navigation and content may vary, but the visual language MUST NOT.
 
 The template's palette is not adopted. IIT brand and semantic color values in this document remain authoritative; template colors, vendor stylesheets, and template-specific UI packages MUST NOT override them. Recreate approved visual patterns with the existing Angular and Tailwind CSS setup and the centralized tokens below.
 
@@ -58,11 +58,11 @@ Use `DM Sans` as the primary Latin typeface and `Noto Sans Bengali` as the Benga
 | Role | Token | Guidance |
 |---|---|---|
 | Primary family | `--font-family-primary` | `DM Sans`, then `Noto Sans Bengali` for Bengali glyphs, then system sans-serif |
-| Page title | `--font-size-page-title` | 1.75rem (28px); one clear title per page |
-| Section heading | `--font-size-heading` | 1.3125rem (21px); consistent hierarchy |
-| Body | `--font-size-body` | 1rem base for comfortable reading |
-| Label/table | `--font-size-compact` | 0.875–1rem; do not make dense data difficult to scan |
-| Helper text | `--font-size-helper` | 0.8125–0.875rem; remain readable and high contrast |
+| Page title | `--font-size-page-title` | 1.5rem (24px); one clear title per page |
+| Section heading | `--font-size-heading` | 1.125rem (18px); consistent hierarchy |
+| Body | `--font-size-body` | 0.9375rem (15px) for a compact, readable work surface |
+| Label/table | `--font-size-compact` | 0.875rem (14px); keep dense data easy to scan |
+| Helper text | `--font-size-helper` | 0.8125rem (13px); remain readable and high contrast |
 
 Use weights 400 for body text, 500 for labels and navigation, 600 for headings and emphasis, and 700 only for rare strong emphasis. Body line height is 1.5; headings use 1.2–1.35; compact table content uses at least 1.4. Buttons, labels, navigation, and tables MUST use the same family and weight conventions. Avoid all-caps labels, decorative type, and using font size alone to indicate meaning.
 
@@ -70,7 +70,7 @@ Use weights 400 for body text, 500 for labels and navigation, 600 for headings a
 
 ### 5.1 Application layout
 
-Use a stable application shell with a consistent compact header, persistent navigation region, main content area, and optional footer. At desktop sizes, use the shared 16.875rem (270px) sidebar and 4.375rem (70px) header dimensions; the account section remains at the bottom of the sidebar, while the main content is the primary visual focus. Use a centered content container with a recommended maximum width of 80rem and fluid side gutters; wide data tables may use the available content width. Keep page titles, breadcrumbs, actions, and content aligned to the same grid.
+Use a stable application shell with a consistent compact header, persistent navigation region, main content area, and optional footer. At desktop sizes, use the shared 15rem (240px) sidebar and 4rem (64px) header dimensions; the account section remains at the bottom of the sidebar, while the main content is the primary visual focus. Use a centered content container with a recommended maximum width of 80rem and fluid side gutters; wide data tables may use the available content width. Keep page titles, breadcrumbs, actions, and content aligned to the same grid.
 
 On desktop, persistent navigation may use a sidebar alongside the main area. Keep its width and collapsed behavior consistent throughout the application. On smaller screens, navigation MUST become a usable compact menu or drawer rather than compressing desktop navigation. Avoid nested cards and unnecessary columns.
 
@@ -86,12 +86,12 @@ Use a 4px base spacing unit and the shared scale below. Prefer these values over
 | `--spacing-2` | 8px |
 | `--spacing-3` | 12px |
 | `--spacing-4` | 16px |
-| `--spacing-6` | 24px |
-| `--spacing-8` | 32px |
-| `--spacing-12` | 48px |
-| `--spacing-16` | 64px |
+| `--spacing-6` | 20px |
+| `--spacing-8` | 24px |
+| `--spacing-12` | 32px |
+| `--spacing-16` | 40px |
 
-Use 16–24px between related form fields, 24–32px between distinct page sections, and 8–12px between a label and its control. Keep spacing consistent across modules. Do not use empty space to imply an interaction or state.
+Use 12–16px between related form fields, 16–24px between distinct page sections, and 6–8px between a label and its control. Keep spacing consistent across modules. Do not use empty space to imply an interaction or state.
 
 ### 5.3 Breakpoints
 
@@ -103,19 +103,19 @@ All components MUST have consistent dimensions, typography, spacing, focus treat
 
 | Component | Purpose, appearance, states, and usage rules |
 |---|---|
-| Buttons | Trigger actions. Use a consistent height, restrained corner radius, and clear text. Primary is reserved for the main action; secondary is for alternatives; destructive uses the semantic error treatment and explicit wording: in the frontend, `.btn-danger` (filled `--color-error`, white text, for the button that confirms the destructive action) and `.btn-danger-outline` (white with an `--color-error` border and text, for the button that starts it). Both keep white-on-error and error-on-white contrast of at least 6.47:1, and the confirmation names the item ("Delete \"BSc\"?"). Define hover, pressed, focus, disabled, and loading states centrally. Use links for navigation, not buttons styled as links. |
+| Buttons | Trigger actions. Use `.btn-sm` (32px desktop), `.btn` (44px default), or `.btn-lg` (48px) for hierarchy; small buttons retain a 44px minimum on touch/narrow layouts. Use a restrained corner radius and clear text. Primary is reserved for the main action; secondary is for alternatives; destructive uses the semantic error treatment and explicit wording: in the frontend, `.btn-danger` (filled `--color-error`, white text, for the button that confirms the destructive action) and `.btn-danger-outline` (white with an `--color-error` border and text, for the button that starts it). Both keep white-on-error and error-on-white contrast of at least 6.47:1, and the confirmation names the item ("Delete \"BSc\"?"). Define hover, pressed, focus, disabled, and loading states centrally. Use links for navigation, not buttons styled as links. |
 | Text inputs | Collect short text. Use a consistent border, height, padding, and label placement. Support default, focus, filled, disabled, read-only, and invalid states. Placeholder text is an example only and never replaces a label. |
 | Password inputs | Collect secret text. Match text-input geometry; provide a clearly labeled visibility toggle if present. Do not expose values in helper content, logs, or error messages. Show authentication feedback without revealing whether an account exists unless policy explicitly permits it. |
-| Select/dropdown | Choose from a finite set. Match input sizing and focus/error states. Show the selected value and a clear affordance; use a searchable alternative only when list size warrants it. Preserve keyboard selection behavior. |
+| Select/dropdown | Choose from a finite set. All native selects use the shared `.field-input` height, border, focus/error treatment, spacing, and token-colored caret. Keep the native option popup and keyboard behavior; use a searchable alternative only when list size warrants it. |
 | Checkbox | Select independent options or acknowledge a condition. Use for zero-or-more choices; pair with a clickable text label and visibly distinguish checked, mixed, disabled, and focus states. |
 | Radio button | Choose exactly one option from a small group. Group under a visible legend; show checked, disabled, and focus states. Do not use for independent choices. |
 | Toggle | Switch an immediate binary setting. Label both the setting and its current meaning; do not use for form choices that require a separate submission unless clearly presented as pending. Show on/off, disabled, and focus states. |
 | Date picker | Enter or select a date. Use the same field structure and validation as other inputs. Display an unambiguous date format, support keyboard entry/navigation, and provide a text-entry path where practical. |
-| Search | Find or filter a collection. Use a labeled field, clear action when non-empty, and optional submit affordance. Preserve the query during result interaction where practical; distinguish no matches from an empty collection. |
-| Tables | Present comparable records for scanning. Use consistent column alignment, headers, row actions, sorting affordances, selection, loading, empty, and responsive behavior as specified in Section 8. |
+| Search | Find or filter a collection. Use a labeled field, clear action when non-empty, and optional submit affordance. Preserve the query during result interaction where practical; distinguish no matches from an empty collection. Filter panels use a 12px grid gap between controls and actions. |
+| Tables | Present comparable records for scanning. Use the shared `.data-table-container` for list views and `.data-table-scroll` inside an existing card. `.data-table` centralizes 14px text, a 44px lightly tinted semibold header, 44px minimum body rows, 12px horizontal cell padding, subtle separators, and a restrained row-hover state. Preserve column alignment, headers, row actions, loading, empty, and responsive behavior as specified in Section 8. |
 | Lists/list groups | Present related items with semantic `ul`/`ol` markup. Use `.list-group` with `.list-group-item`; add `.list-group-compact` for a 20rem maximum width or `.list-group-flush` for edge-to-edge separators. Use `.list-group-item-action` on a row link, `.list-group-icon` for a leading icon, and `.list-group-item-total` for a highlighted total. Match template geometry: 8px group radius, 12px vertical and 16px horizontal row padding, 14px text at 20px line height, and 8px row gaps (14px beside icons). Use `.list-marker` for a bulleted supporting list and `.list-checklist` for a check-mark list; their item spacing is 8px and 12px respectively. A `.badge-pill` can appear at the end of a row. Keep interactive rows keyboard accessible and at least 44px high; use a table for comparable multi-field records. |
-| Pagination | Navigate a bounded result set. Display current position and available navigation clearly; disable unavailable directions and preserve active filters/sort when moving pages. |
-| Cards | Group closely related summary or dashboard content. Use `.card` for the surface and, for a template-style content wrapper, place `.card-body` as its direct child. The body uses 30px padding and replaces the root card's default padding. Use `.card-title` for 18px/28px semibold headings and `.card-subtitle` for 14px/20px secondary text. Keep a simple surface, subtle border, and restrained radius. Do not nest cards or make a non-interactive card look clickable. |
+| Infinite loading | For long collections, append bounded batches as the reader approaches the end. Preserve filters and sort, show loading/error/end states, and provide an accessible manual Load more fallback. Do not show numbered pages or an items-per-page selector. |
+| Cards | Group closely related summary or dashboard content. Use `.card` for the surface and, for a template-style content wrapper, place `.card-body` as its direct child. The root uses 16px padding; `.card-body` uses 20px and replaces the root card's padding. Use `.card-title` for 16px/24px semibold headings and `.card-subtitle` for 14px/20px secondary text. Links used as card titles are not underlined; preserve their brand color, hover feedback, and visible keyboard focus. Keep a simple surface, subtle border, and restrained radius. Do not nest cards or make a non-interactive card look clickable. |
 | Modal/dialog | Focus a short, interruptive task. Use a clear title, concise content, and explicit actions. Trap and restore focus correctly; close with Escape when safe. Do not use for routine page content. |
 | Confirmation dialog | Confirm destructive or irreversible action. State the consequence plainly and name the affected item when possible. Make cancel easy to choose; label the destructive action explicitly and do not rely on color alone. |
 | Alerts | Keep persistent or page-level feedback visible in context. Use a semantic icon, concise heading/message, and optional dismissal only when safe. Provide success, information, warning, and error variants. |
@@ -143,17 +143,17 @@ Disabled fields communicate unavailable actions and are skipped by normal keyboa
 
 Tables are for comparing records across consistent attributes. Use clear column headings, concise cell content, and a stable alignment rule: text is left-aligned, numeric values are right-aligned, and dates follow one documented format. Keep row heights consistent (recommended minimum 44px for interactive rows) and use subtle separators. Avoid heavy grid lines and excessive zebra striping.
 
-Sorting MUST be indicated on the active column and operable by keyboard. Filtering controls MUST be visibly associated with the table and distinguish active filters. Pagination MUST show the current page or range and preserve sort/filter state. Place row actions consistently, expose accessible names, and avoid making the entire row clickable when it contains independent controls.
+Sorting MUST be indicated on the active column and operable by keyboard. Filtering controls MUST be visibly associated with the table and distinguish active filters. Long results MUST preserve sort/filter state while appending bounded batches. Place row actions consistently, expose accessible names, and avoid making the entire row clickable when it contains independent controls.
 
-**Pagination (one pattern for every paged table):** every paged list uses the same shared pager (`app-pager`), so audit history and the Configuration lists behave identically. Below the table it shows "Showing X to Y of N" with the plural noun of the records (for example "events" or "degrees"), then Previous, numbered page buttons, and Next. The numbers are always the first page, the last page, and a window of two pages either side of the current page, with an ellipsis where pages are skipped (1 … 8 9 [10] 11 12 … 40); a single skipped page is shown, not hidden. The current page is a filled button with `aria-current="page"`, Previous is disabled on the first page and Next on the last, and each page button has the accessible name "Page N". A list that pages this way asks the service for a page number and reads back the total; changing a search, filter, or status returns to page 1, and asking for a page past the end shows the last page that exists. While a page loads, the rows stay on screen and the summary shows a spinner, and clicks on the pager are ignored rather than disabling the button, so focus stays on it. Every paged table also offers an "Items per page" choice beside the page numbers (10, 25, 50, or 100; 25 by default; the services accept 1 to 100): a visible label, a native select, and a change that returns to page 1 because the rows per page have changed. The choice is shared by all paged tables while the app is open, so choosing 50 on audit history also applies to the Configuration lists, and it is kept in memory only, so a reload returns to 25. A change made while a page is loading is ignored and the box returns to the size on screen, and a keyboard change leaves focus on the box. On narrow screens the summary, the size choice, and the page buttons wrap onto separate lines. Total counts can shift as records arrive; a client that must never see that shift uses the service's cursor mode instead.
+**Infinite loading (one pattern for every long list):** load an initial bounded batch, then use the shared `appInfiniteScrollSentinel` inside the main scroll region to request and append the next batch as it approaches the viewport. Prefer stable cursor requests. If an existing endpoint only supports bounded page-number requests, request pages sequentially behind the scroll interaction; do not expose page numbers, totals, or an items-per-page selector. Keep existing rows visible and mark the list busy during a load. Ignore repeated load requests while one is in flight. Provide a keyboard-accessible **Load more** button as a fallback when automatic observation is unavailable, and show a concise loading status. A failed later batch MUST leave existing rows in place and offer retry; a failed first batch shows the normal list error state. Filter changes return to the initial batch. Distinguish an empty collection from no matching results, and announce when all matching records have loaded. Use stable ordering and bounded batch sizes so the client never loads the entire collection in one request.
 
-**Audit timestamps:** audit history shows every date-time as `yyyy-MM-dd HH:mm:ss` followed by the label "UTC", inside a `time` element with the ISO value in `datetime` (the shared `app-utc-timestamp` component). Date-range filters on those screens are labeled "(UTC)" and sent as UTC. Outcomes appear as text in a badge, never as color alone, and paged tables use the shared pager described above. The current page is marked with `aria-current="page"` and a filled button, not color alone.
+**Audit timestamps:** audit history shows every date-time as `yyyy-MM-dd HH:mm:ss` followed by the label "UTC", inside a `time` element with the ISO value in `datetime` (the shared `app-utc-timestamp` component). Date-range filters on those screens are labeled "(UTC)" and sent as UTC. Outcomes appear as text in a badge, never as color alone. Audit results follow the infinite-loading pattern above; no numbered page control is shown.
 
-Loading MUST preserve the table's expected geometry. When a reviewer changes page or filters, keep the current rows on screen, dimmed and marked `aria-busy`, with a spinner in the footer, until the new rows arrive; replacing the table with a spinner shrinks the page and throws the scroll position back to the top. Do not disable the control that was just activated, so keyboard focus stays on it. Empty data and no matching results MUST have distinct messages. On smaller screens, prioritize important columns and provide a usable horizontal-scroll region or an explicitly designed compact representation; do not silently clip critical values or actions. Keep table headers available to assistive technology and provide captions or an equivalent accessible name.
+Loading MUST preserve the table's expected geometry. When another batch is loading, keep current rows on screen, dimmed and marked `aria-busy`; replacing the table with a spinner shrinks the page and throws the scroll position back to the top. Keep the manual **Load more** fallback operable and do not move focus during automatic loads. Empty data and no matching results MUST have distinct messages. On smaller screens, prioritize important columns and provide a usable horizontal-scroll region or an explicitly designed compact representation; do not silently clip critical values or actions. Keep table headers available to assistive technology and provide captions or an equivalent accessible name.
 
 **Record history:** an edit screen for a stored record shows a read-only "Record history" card below the form with two rows, "Created" and "Last modified", each giving the UTC timestamp (the shared `app-utc-timestamp`) followed by "by" and the account's email. When no account made the change it says "System", and when the account has since been removed it says "(account removed)". It is not shown when creating a record. Any screen for a new kind of record should show the same card.
 
-**Admin maintenance lists and forms** (used by Configuration and Teachers): a list defaults to active records with a status filter, search, and the same shared pager and dimmed-while-loading behavior as other tables; an inactive record is labeled "Inactive" in text and, in a selector, "(inactive)". A form shows required fields with persistent labels and field-level errors, moves focus to the first invalid field, and keeps what was typed. Deactivation is the Active checkbox. Deleting asks for explicit confirmation in the page and states the consequence plainly (the record disappears from every list and cannot be restored from the portal; the data is kept in the database); when the service refuses because the record is in use, the screen explains why and offers "Deactivate instead". A selector that depends on another (an upazila's district depends on its division) is disabled-by-prompt ("Choose a division first") until the parent is chosen, and changing the parent clears the child.
+**Admin maintenance lists and forms** (used by Configuration and Teachers): a list defaults to active records with a status filter, search, and the shared infinite-loading behavior; an inactive record is labeled "Inactive" in text and, in a selector, "(inactive)". A form shows required fields with persistent labels and field-level errors, moves focus to the first invalid field, and keeps what was typed. Deactivation is the Active checkbox. Deleting asks for explicit confirmation in the page and states the consequence plainly (the record disappears from every list and cannot be restored from the portal; the data is kept in the database); when the service refuses because the record is in use, the screen explains why and offers "Deactivate instead". A selector that depends on another (an upazila's district depends on its division) is disabled-by-prompt ("Choose a division first") until the parent is chosen, and changing the parent clears the child.
 
 **Teacher management** follows the same list, form, and record-history patterns, with these additions. Account state is always text in a badge ("Active", "Pending setup", "Deactivated"), never color alone, and a pending or deactivated teacher also gets an info alert on the edit screen explaining it. A teacher is never deleted: the destructive action is "Deactivate teacher…" (danger outline), which asks for in-page confirmation, states that sessions end and sign-in stops while the record and history stay, and shows the service's reason (for example the last active Admin) without changing anything. Roles are a separate card with its own save: required roles are shown checked and disabled, system-managed roles (Coordinator) are described in text rather than offered as controls, and the default-role choice lists only the roles that would be assigned.
 
@@ -161,9 +161,11 @@ Loading MUST preserve the table's expected geometry. When a reviewer changes pag
 
 Navigation MUST make the user's current location and available destinations understandable. Use a consistent top header for the application identity, with a persistent sidebar on wide screens where the application structure warrants it. Mark the active item with more than color alone (such as weight, indicator, or icon treatment). Nested items MUST have clear parent/child hierarchy and expansion state.
 
-**Account section:** the user's account controls sit at the bottom of the sidebar, below the navigation and separated by a divider:
-- **Active role:** shown as a badge ("Role: Student"). For an account with several roles, a labelled "Active role" select replaces the badge.
-- **Sign out:** a full-width secondary button.
+**Account dropdown:** the compact profile trigger sits at the bottom of the sidebar, below the navigation and separated by a divider. It shows the current role and opens a small menu on activation. Keep its trigger at least 44px high and keyboard operable.
+- For accounts with multiple roles, show the available roles as one labelled radio group headed "Active role"; for single-role accounts, show the role as a badge. Changing a radio switches the active role immediately.
+- Include a disabled **My Profile** item until its profile destination is implemented.
+- Place **Sign out** as a visually compact, full-width secondary button inside the menu, while retaining a 44px minimum hit area.
+- Close the menu on Escape and outside click. Escape returns focus to the trigger. Preserve disclosure semantics; do not add a menu library solely for this pattern.
 
 On wide screens the shell fills the viewport and only the main content scrolls, so the account section is always visible. The main region is positioned (`relative`) so visually hidden text stays inside it; otherwise it stretches the page and adds a second, empty scrollbar. On mobile it appears at the bottom of the menu drawer, one tap from any page. The header holds only the application identity (the approved IIT logo at 40px tall, original aspect ratio, beside the portal name) and, on mobile, the menu control.
 
@@ -193,7 +195,7 @@ Show loading and validation states without moving controls unexpectedly. Authent
 
 Dashboards MUST begin with a clear page heading and prioritize the most relevant summary information. Use summary cards only for concise, comparable values; avoid decorative charts or dense card grids without a clear reading purpose. Recent activity, notifications, and quick actions should each have clear headings and predictable placement. Use the same card, typography, and spacing rules as other pages.
 
-For a template-informed dashboard, use Tailwind's generated `grid grid-cols-12 gap-6` utilities with responsive `col-span-*` utilities for widget placement. Use `.full-container` only to fill its parent; it does not remove a max-width constraint. Build summary widgets from `.card` and its direct `.card-body`, with `.card-title`, `.card-subtitle`, and `.badge-md` or `.badge-pill` as needed. Follow the reusable list and badge recipes in Section 6. Replace template palette classes such as `text-primary`, `bg-white`, or `text-dark` with the IIT color tokens in Section 3. Do not assume the template's ApexCharts or Tabler icon classes are available; adding their packages requires separate approval.
+For a template-informed dashboard, use Tailwind's generated `grid grid-cols-12 gap-4` utilities with responsive `col-span-*` utilities for widget placement. Use `.full-container` only to fill its parent; it does not remove a max-width constraint. Build summary widgets from `.card` and its direct `.card-body`, with `.card-title`, `.card-subtitle`, and `.badge-md` or `.badge-pill` as needed. Follow the reusable list and badge recipes in Section 6. Replace template palette classes such as `text-primary`, `bg-white`, or `text-dark` with the IIT color tokens in Section 3. Do not assume the template's ApexCharts or Tabler icon classes are available; adding their packages requires separate approval.
 
 Provide loading, empty, and error states for each dashboard region. Do not define role-specific dashboard content in this document. Avoid duplicate summaries that compete with the primary content and avoid placing cards inside cards.
 
@@ -274,10 +276,10 @@ The values are centralized here to prevent local component overrides and repeate
   --color-surface-selected: #EEEFF8;
 
   /* Typography */
-  --font-family-primary: "Roboto", "Noto Sans Bengali", sans-serif;
-  --font-size-page-title: 2rem;
-  --font-size-heading: 1.5rem;
-  --font-size-body: 1rem;
+  --font-family-primary: "DM Sans", "Noto Sans Bengali", sans-serif;
+  --font-size-page-title: 1.5rem;
+  --font-size-heading: 1.125rem;
+  --font-size-body: 0.9375rem;
   --font-size-compact: 0.875rem;
   --font-size-helper: 0.8125rem;
   --font-weight-regular: 400;
@@ -291,15 +293,15 @@ The values are centralized here to prevent local component overrides and repeate
   --spacing-2: 0.5rem;
   --spacing-3: 0.75rem;
   --spacing-4: 1rem;
-  --spacing-6: 1.5rem;
-  --spacing-8: 2rem;
-  --spacing-12: 3rem;
-  --spacing-16: 4rem;
+  --spacing-6: 1.25rem;
+  --spacing-8: 1.5rem;
+  --spacing-12: 2rem;
+  --spacing-16: 2.5rem;
 
   /* Shape, borders, elevation, and control sizing */
   --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
+  --radius-md: 0.4375rem;
+  --radius-lg: 0.5rem;
   --border-width: 1px;
   --shadow-overlay: 0 4px 12px rgba(17, 24, 39, 0.08), 0 1px 3px rgba(17, 24, 39, 0.06);
   --control-height-sm: 2rem;
@@ -309,7 +311,7 @@ The values are centralized here to prevent local component overrides and repeate
   /* Layout */
   --content-max-width: 80rem;
   --sidebar-width: 15rem;
-  --header-height: 3.5rem;
+  --header-height: 4rem;
   --breakpoint-sm: 40rem;
   --breakpoint-md: 48rem;
   --breakpoint-lg: 64rem;
@@ -327,7 +329,7 @@ Use the template-informed compact shape scale: 0.25rem (4px) for small controls 
 - Keep spacing, typography, control sizing, border, and focus treatments consistent across roles.
 - Maintain a clear button hierarchy with one primary action per context where practical.
 - Present labels, validation, errors, loading, empty, and success states consistently.
-- Preserve table sorting, filtering, pagination, and responsive conventions across modules.
+- Preserve table sorting, filtering, infinite-loading behavior, and responsive conventions across modules.
 - Make new components follow this document and contribute reusable patterns rather than local variants.
 - Do not add decoration that reduces scanability or obscures academic information.
 - Review responsive and accessibility behavior alongside visual appearance.

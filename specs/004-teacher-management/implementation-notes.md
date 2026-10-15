@@ -8,6 +8,6 @@
 - **Audit.** Events `teacher.created`, `teacher.updated`, `teacher.roles.changed`, `teacher.deactivated`, `teacher.coordinator-role.synchronized`. Email and phone are change indicators only (recorded as changed, never with values); an update or role change that changes nothing records nothing.
 - **Designations** in use by a teacher profile cannot be deleted (`IConfigurationStore.DesignationInUseByTeacherAsync`); the catalog screen offers "Deactivate instead".
 - **The synchronizer stages without saving** (see the contract), so its role change and audit event commit with the caller's assignment change.
-- **Directory** uses numbered pages only (the shared pager), ordered by upper-cased name then id; search is a case-insensitive contains over name, email, and staff ID.
+- **Directory** uses infinite loading over sequential bounded API pages, ordered by upper-cased name then id; search is a case-insensitive contains over name, email, and staff ID. The UI has no numbered pager or page-size selector.
 - `TeacherProfile` derives from `AuditedEntity`, so it records who created and last changed it; the edit screen shows the "Record history" card.
 - Task notes: the profile-update tests live in `TeacherProfileTests.cs` (T013 asked for them with the role tests), and deactivation through `PUT` with `isActive: false` was added alongside the dedicated `POST .../deactivation` route.

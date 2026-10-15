@@ -86,15 +86,15 @@
 
 ### Tests for User Story 3
 
-- [X] T019 [P] [US3] Add API tests for directory search/filter/pagination, active/pending/deactivated states, deactivation session revocation, audit atomicity, and last-Admin protection in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/TeacherManagement/TeacherDirectoryAndDeactivationTests.cs`.
-- [X] T020 [P] [US3] Add Angular tests for teacher directory loading, empty/error states, search/filter/pagination, role/status display, and deactivation confirmation in `iit-academic-portal/src/app/features/teachers/teacher-list.spec.ts`.
+- [X] T019 [P] [US3] Add API tests for directory search/filter and bounded batch retrieval, active/pending/deactivated states, deactivation session revocation, audit atomicity, and last-Admin protection in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/TeacherManagement/TeacherDirectoryAndDeactivationTests.cs`.
+- [X] T020 [P] [US3] Add Angular tests for teacher directory loading, empty/error states, infinite loading/append/retry, search/filter, role/status display, and deactivation confirmation in `iit-academic-portal/src/app/features/teachers/teacher-list.spec.ts`.
 
 ### Implementation for User Story 3
 
 - [X] T021 [US3] Implement bounded teacher directory queries and search/filter/status behavior in `iit-academic-portal-service/src/IitAcademicPortal.Application/Teachers/TeacherDirectoryService.cs`; include only required profile and safe account/role fields.
 - [X] T022 [US3] Implement deactivation in `iit-academic-portal-service/src/IitAcademicPortal.Application/Teachers/TeacherLifecycleService.cs`: set profile inactive and account Deactivated, bulk-revoke all active sessions, preserve Identity role/profile/history, stage audit, and commit all changes in one transaction.
 - [X] T023 [US3] Add list/filter and deactivation routes in `iit-academic-portal-service/src/IitAcademicPortal.Api/Controllers/Teachers/TeacherDirectoryController.cs` and corresponding DTOs in `iit-academic-portal-service/src/IitAcademicPortal.Api/Contracts/TeacherContracts.cs`; do not expose physical DELETE.
-- [X] T024 [US3] Implement the Admin teacher directory, status badges, search/filter/pagination, and confirm-deactivation flow in `iit-academic-portal/src/app/features/teachers/teacher-list.ts` and `iit-academic-portal/src/app/features/teachers/teacher-list.html` using shared design-system classes.
+- [X] T024 [US3] Implement the Admin teacher directory, status badges, search/filter with infinite loading, and confirm-deactivation flow in `iit-academic-portal/src/app/features/teachers/teacher-list.ts` and `iit-academic-portal/src/app/features/teachers/teacher-list.html` using shared design-system classes.
 
 **Checkpoint**: Admin can find and deactivate teachers; inactive accounts and every existing session lose access while historical records remain.
 

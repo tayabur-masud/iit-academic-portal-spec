@@ -62,5 +62,5 @@
 
 ## Technical Goals and Open Inputs
 
-- The spec sets no numeric performance SLO. Use bounded directory pagination and avoid loading unrelated Identity fields.
+- The spec sets no numeric performance SLO. Use bounded directory batches behind the infinite-loading UI and avoid loading unrelated Identity fields.
 - No specification clarification remains open. The email mechanism and the batch-assignment producer are explicitly deferred/external dependencies, not implementation choices to guess.

@@ -69,7 +69,7 @@ As an Admin, I need to find and deactivate a teacher when appropriate so that th
 
 **Acceptance Scenarios**:
 
-1. **Given** an Admin searches or filters the teacher directory, **When** matching teachers exist, **Then** results are clear, paginated when needed, and support viewing each teacher's current profile and roles.
+1. **Given** an Admin searches or filters the teacher directory, **When** matching teachers exist, **Then** results load in bounded batches as the Admin scrolls, append without losing already loaded rows, and support viewing each teacher's current profile and roles; no numbered page controls or page-size selector are shown.
 2. **Given** an Admin deactivates a teacher, **When** the operation succeeds, **Then** the linked account is disabled, active sessions are revoked, and the profile and audit history are preserved.
 3. **Given** a non-Admin or unauthenticated user attempts teacher-management operations, **When** the service authorizes the request, **Then** the operation is denied regardless of menu visibility.
 
