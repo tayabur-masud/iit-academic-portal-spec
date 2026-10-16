@@ -55,9 +55,24 @@ The existing API host uses xUnit, `WebApplicationFactory`, SQLite, controllable 
 
 ## Verification Results (2026-10-16)
 
-- `dotnet test` from `iit-academic-portal-service/` with `AUDIT_TEST_POSTGRES` set: **855 passed, 0 failed**. About 270 of these are new (dispatch, templates, history, resend, reminders, producers, provider and Production guards, PostgreSQL). The notification tests are in `tests/IitAcademicPortal.Api.Tests/Notifications/`: dispatch, templates, history, resend, reminders, academic producers, the teacher-invitation producer, provider contract and Production guard, and PostgreSQL (`NotificationPostgresTests`: seed, idempotency keys, lease claims and recovery, interrupted send, keyset paging, append-only and mutable permissions as the runtime role).
+- `dotnet test` from `iit-academic-portal-service/` with `AUDIT_TEST_POSTGRES` set: **882 passed, 0 failed**. About 270 of these are new (dispatch, templates, history, resend, reminders, producers, provider and Production guards, PostgreSQL). The notification tests are in `tests/IitAcademicPortal.Api.Tests/Notifications/`: dispatch, templates, history, resend, reminders, academic producers, the teacher-invitation producer, provider contract and Production guard, and PostgreSQL (`NotificationPostgresTests`: seed, idempotency keys, lease claims and recovery, interrupted send, keyset paging, append-only and mutable permissions as the runtime role).
 - `npm test -- --watch=false`: **197 passed**. `npm run build`: succeeds with no warnings; the notification screens are lazy chunks and the initial bundle is 469.1 kB (budget 500 kB).
 - Provider substitution: the same producer request is delivered through the Brevo adapter (over a fake HTTP layer, with an allowlisted address) and through a substitute adapter with no change to the request; a host started in Production with Brevo selected refuses to start; a destination outside the allowlist, or an empty allowlist, is rejected before any HTTP request.
+
+### Performance validation (SC-002, SC-003)
+
+`NotificationPerformanceTests` run with the rest of the suite (SQLite, in memory) and print their numbers; run them alone with `dotnet test --filter NotificationPerformanceTests --logger "console;verbosity=detailed"`.
+
+| What | Fixed workload | Limit | Measured here (2026-10-16) |
+|---|---|---|---|
+| Originating-action overhead (SC-002) | 100 measured Admin teacher creations (after 10 warm-up), then 100 producer calls, each against a host with notifications disabled and a host whose provider fails every call, with the worker running every 10 actions | 95th percentile at most 200 ms above notifications disabled; every action keeps its outcome | teacher creation +0.8 ms, producer call +1.5 ms; all 201 and Accepted |
+| Time to provider submission (SC-003) | 500 immediate notifications (5 events of 100 recipients) accepted together; a worker with the real batch of 50 and a 5-second wait after a pass that does not fill the batch | at least 95% within 60 s | 100% within 60 s (p95 0.69 s, 11 passes) |
+
+The default worker (batch 50, poll 5 s) sustains 10 notifications per second when every pass is full, and a burst of up to 600 is guaranteed to be picked up inside 60 s even if every pass waits the full poll interval. These numbers come from an in-memory test database on one machine and prove the logic and the margins, not production capacity: measure a representative volume against PostgreSQL before sizing Production (the specification gives no volume).
+
+### Channel independence (SC-009)
+
+`NotificationChannelIndependenceTests` register a fake non-email channel and a template for it in the test only. The same unchanged producer calls (results published, and a password-reset request) then produce one notification per channel; a failure on one channel does not affect the other; a replay creates nothing new; a resend stays on its channel; and production is pinned to one channel and seven email templates.
 
 ### Not verified here (explicit gates)
 
@@ -70,7 +85,7 @@ The existing API host uses xUnit, `WebApplicationFactory`, SQLite, controllable 
 ### Branded email (added 2026-10-16)
 
 - Every email is sent as plain text plus the IIT-branded HTML layout. Branding is configuration, not an Admin screen: `Notifications:LogoUrl` (absolute https; default `{Notifications:PortalUrl}/images/iit-logo.png`, and for real recipients it must be publicly reachable), `Notifications:BrandColor` (six-digit hex, default `#2E3192`, must keep a 4.5:1 contrast with white), `Notifications:PortalName`, `Notifications:LogoAlt`, `Notifications:FooterText`, and `Notifications:ButtonLabel`. A change needs a restart; an invalid value stops the service from starting.
-- Verified by tests: the layout (logo with alt text, heading, footer, brand color, encoding of hostile text, link rules, button for a lone address, fallback without a usable logo address), the branded send for an ordinary and a security message, configured branding in a sent email, the startup validation of the branding values, the Brevo payload with both versions, and the preview (including the nonfunctional placeholder for secure messages).
+- Verified by tests: the layout (logo with alt text, heading, footer, brand color, encoding of hostile text, link rules, button for a lone address, fallback without a usable logo address), the branded send for an ordinary and a security message, configured branding in a sent email, the startup validation of the branding values, the Brevo payload with both versions, the https-only logo rule (an http portal address needs an explicit https logo or `ShowLogo=false`), and the preview (including the nonfunctional placeholder for secure messages).
 - **Not verified:** how the layout renders in real mail clients (Gmail, Outlook, mobile), and whether the logo loads from a deployed address. Check both with a Development smoke test to an allowlisted mailbox before relying on the look.
 
 ## Where Things Are

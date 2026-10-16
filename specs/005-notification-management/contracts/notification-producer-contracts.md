@@ -49,6 +49,10 @@ ISecurityContentProvider { EventType; CheckAsync(userId, destination, ct); Prepa
 
 The existing password-recovery request keeps its public generic response for known and unknown addresses, but its in-memory queue/worker must no longer send directly. Accepted requests enter the durable notification path once; the worker resolves account eligibility and obtains a fresh Identity proof only for an authorized delivery attempt. No parallel legacy sender may remain. Replay tests verify one logical delivery, unchanged public responses, and no persisted proof or rendered security content.
 
+## Channels
+
+A producer never names a channel. The request service creates one notification per recipient for every delivery channel that is registered (`IDeliveryChannel`) and has a template for the event; production registers only the email channel, so each request produces email notifications only. Adding a channel is a new adapter, a seeded template, and no producer change. This is proven in tests with a fake channel (`NotificationChannelIndependenceTests`); `NotificationChannel.Test` is reserved for that and is never seeded or registered outside tests.
+
 ## Transaction and Failure Boundary
 
 - The owner commits its business action independently of the email provider and delivery retries.
