@@ -63,4 +63,6 @@ Service tests use the existing xUnit API test host and SQLite pipeline fixture (
 
 ## Deferred Email Verification
 
+Update (feature 005): the notification capability now exists and provisioning requests an invitation, but the secure setup link and activation are still not built, so delivery stays blocked and the scenarios below remain deferred.
+
 When the shared email mechanism is ready, add follow-up scenarios for setup-message delivery, secure proof expiry/single use, retry/resend, pending-to-active transition, and delivery failure. Those tests are not part of this feature's current verification gate.
