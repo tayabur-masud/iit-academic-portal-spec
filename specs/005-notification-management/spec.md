@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-15
 
-**Status**: Implemented, except end-to-end invitation delivery and the academic producers, which are blocked on their owners (see tasks.md T016 and the producer contracts)
+**Status**: Implemented, except the academic producers, which are blocked on their owners (see the producer contracts). End-to-end teacher setup-email delivery was completed by feature 006 through the common `AccountCredentialSetup` event (tasks.md T016)
 
 **Input**: Add reusable background notifications for account invitations, email confirmation, password reset, published course results, and feedback-window opening/reminders. Initially deliver email only; use Brevo for Development email and replace it before Production without changing notification producers. Support future channels without changing feature triggers. Admins manage channel-specific templates and search permanent delivery history, with security-content exclusion and feedback confidentiality.
 
