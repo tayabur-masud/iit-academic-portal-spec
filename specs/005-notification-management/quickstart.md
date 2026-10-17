@@ -77,7 +77,7 @@ The default worker (batch 50, poll 5 s) sustains 10 notifications per second whe
 ### Not verified here (explicit gates)
 
 - **No real Brevo request was made.** Everything above uses a fake HTTP layer. A Development smoke test with a real key, a verified sender, and a controlled test mailbox still has to be done by someone holding those credentials (scenario 2 above).
-- **Invitation delivery is blocked.** No secure setup-link flow exists, so a teacher invitation fails visibly (`SetupLinkProviderMissing`) and nothing is sent. Student invitation and email confirmation have no producer or link provider at all.
+- **Invitation delivery (resolved by feature 006).** A new teacher now gets the common account-setup email with a working link (see `specs/006-user-management/quickstart.md`). Student invitation and email confirmation have no producer or link provider at all.
 - **The academic producers are contract-only.** Results publication and feedback-window owners do not exist; their calls are tested with fake owners and nothing calls them. Their end-to-end integration is not complete until each owner calls the contract and passes its own tests.
 - **Production gates:** choose a Production email provider other than Brevo and verify its content retention and access against the no-stored-security-content rule; persist the Data Protection key ring; re-run the runtime grants; name an owner for the persistence-failure and retry-exhausted signals. No Production provider is selected by this feature.
 - **No live browser check** (headless Chrome with axe-core) and **no migration applied to the Development database** in this pass.
