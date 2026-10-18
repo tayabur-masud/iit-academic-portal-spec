@@ -133,22 +133,46 @@
 - [X] T038 [US1] Add the `Hall` entity in `iit-academic-portal-service/src/IitAcademicPortal.Domain/Configuration/Hall.cs` and map it (`Halls` table, unique `NormalizedName`, unique non-null `NormalizedCode`, address limited to 500) in `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/Persistence/PortalDbContext.cs`; add the `AddHalls` migration under `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/Persistence/Migrations/`.
 - [X] T039 [US1] Add `HallResource` (`halls`, optional code, optional address, shared address reader) in `iit-academic-portal-service/src/IitAcademicPortal.Application/Configuration/ConfigurationResources.cs`, register it in `CatalogService.cs`, and allow the route in `iit-academic-portal-service/src/IitAcademicPortal.Api/Controllers/Configuration/CatalogsController.cs`; audit events `configuration.hall.{created|updated|deactivated|deleted}` come from the shared flow.
 - [X] T040 [US1] Add the `halls` descriptor (group "Other catalogs", code and address) in `iit-academic-portal/src/app/features/configuration/configuration.models.ts`; the generic list and form serve it.
-- [X] T041 [US1] Extend the xUnit coverage with Halls in `CatalogCrudTests.cs`, `ConfigurationAuthorizationTests.cs`, `ConfigurationAuditTransactionTests.cs`, `ConfigurationPostgresTests.cs`, and `ConfigurationDeleteIntegrityTests.cs` (plus hall-specific address tests), and the Vitest coverage in `configuration-home.spec.ts` and `catalog-form.spec.ts`.
+- [X] T041 [US1] Extend the xUnit coverage with Halls in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/CatalogCrudTests.cs`, `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/ConfigurationAuthorizationTests.cs`, `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/ConfigurationAuditTransactionTests.cs`, `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/ConfigurationPostgresTests.cs`, and `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/ConfigurationDeleteIntegrityTests.cs` (plus hall-specific address tests), and the Vitest coverage in `iit-academic-portal/src/app/features/configuration/configuration-home.spec.ts` and `iit-academic-portal/src/app/features/configuration/catalogs/catalog-form.spec.ts`.
 - [X] T043 [US1] Add `iit-academic-portal-service/database/postgresql/seed-halls.sql` (the 23 University of Dhaka halls and hostels, fixed version 5 UUIDs, default address "University of Dhaka, Dhaka-1000, Bangladesh", `ON CONFLICT DO NOTHING`) and its PostgreSQL tests in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/HallSeedScriptTests.cs` (fixed ids, normalized names match the application rule, idempotent, keeps admin edits, skips an existing same-named hall).
 - [X] T044 [US3] Add the geography seed scripts `iit-academic-portal-service/database/postgresql/seed-divisions.sql`, `seed-districts.sql`, and `seed-upazilas.sql` (8, 64, and 492 rows from the owner's files; fixed version 5 UUIDs; parents found by normalized name; `ON CONFLICT DO NOTHING`; a missing parent stops the script and adds nothing) and their PostgreSQL tests in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/GeographySeedScriptTests.cs`.
 - [X] T045 [US4] Make every configuration delete a soft delete: add `IsDeleted`, `DeletedAtUtc`, `DeletedByUserId` and `MarkDeleted` in `iit-academic-portal-service/src/IitAcademicPortal.Domain/Configuration/ConfigurationRecord.cs`; map them with a global query filter and live-rows-only unique indexes in `PortalDbContext.cs`; add the `SoftDeleteConfiguration` migration; remove the physical `Remove` from `IConfigurationStore`/`ConfigurationStore` and add `ExistsAsync`.
 - [X] T046 [US4] Change the delete flow in `iit-academic-portal-service/src/IitAcademicPortal.Application/Configuration/ConfigurationResource.cs` and `ConfigurationResources.cs`: refuse (409) while live dependents exist (Degree, Semester, Academic Session by Batches; Division by Districts; District by Upazilas), otherwise mark the record deleted with the clock and the signed-in actor, stage the `deleted` audit event, and save them together.
-- [X] T047 [US4] Add the PostgreSQL and API tests in `ConfigurationDeleteIntegrityTests.cs` (rewritten: foreign keys still refuse a physical delete, deleted rows are marked and hidden, names and codes reusable, scoped names reusable, unique indexes cover live rows only), `CatalogCrudTests.cs`, `BatchTests.cs`, `GeographyTests.cs`, `GeographyImportTests.cs`, and `HallSeedScriptTests.cs` (a seeded hall an Admin deleted stays deleted).
+- [X] T047 [US4] Add the PostgreSQL and API tests in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/ConfigurationDeleteIntegrityTests.cs` (rewritten: foreign keys still refuse a physical delete, deleted rows are marked and hidden, names and codes reusable, scoped names reusable, unique indexes cover live rows only), `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/CatalogCrudTests.cs`, `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/BatchTests.cs`, `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/GeographyTests.cs`, `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/GeographyImportTests.cs`, and `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/HallSeedScriptTests.cs` (a seeded hall an Admin deleted stays deleted).
 - [X] T048 [US4] Update the delete wording in `iit-academic-portal/src/app/features/configuration/catalogs/catalog-form.html` and its spec, and record the decision in the spec (FR-016, clarification 2026-10-14), data model, research, contract, design system, and service README.
 - [X] T049 [US4] Add the shared `iit-academic-portal-service/src/IitAcademicPortal.Domain/AuditedEntity.cs` (created by, created time, last modified by, last modified time) and derive `ConfigurationRecord` from it.
 - [X] T050 [US4] Stamp the columns on every save: add `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/Persistence/AuditedEntityInterceptor.cs` (server clock and signed-in account), register it in `PersistenceServiceCollectionExtensions.cs`, make `IAuditRequestContext` a singleton in `PortalApi.cs`, map the four columns for every derived entity in `PortalDbContext.cs`, and add the `AuditedEntityColumns` migration (existing rows get the migration time and no account).
 - [X] T051 [US4] Return the values from the Configuration API: `createdAtUtc`, `createdByUserId`, `createdBy`, `lastModifiedAtUtc`, `lastModifiedByUserId`, `lastModifiedBy` (emails resolved with one lookup per response in `CatalogService.cs`), and show a "Record history" card on the edit screen in `iit-academic-portal/src/app/features/configuration/catalogs/catalog-form.html`.
-- [X] T052 [US4] Add the tests: `AuditedEntityStampTests.cs` (create, update, deactivate, delete, no-op, server clock, client cannot supply, removed account, outside a request), `AuditedEntityConventionTests.cs` (every entity derives or is exempt with a reason; columns mapped as required), `AuditedEntityPostgresTests.cs` (columns, defaults, a SQL-added row), and the Vitest cases in `catalog-form.spec.ts`.
-- [X] T053 [US4] Write the convention for future entities in the service README ("Entity conventions"), the design system ("Record history"), the spec (FR-025), data model, research, and contract, and note the defaults in the seed script headers.
-- [X] T054 [US3] Re-check the seed scripts against soft delete and the audit columns and fix what they missed: the district and upazila scripts looked parents up with plain SQL and so could match a deleted division or district (the application hides deleted rows through a query filter that raw SQL bypasses). They now match only parents that are not deleted, treat a row as present by its fixed id or by its live name, and stop with a clear error if a parent is missing or deleted; the script headers say that deleted rows stay deleted and that the audit columns take the database defaults. Tests added to `GeographySeedScriptTests.cs` (deleted rows stay deleted on a re-run, a live parent is chosen over a deleted one of the same name, a deleted division is refused).
-- [X] T042 [US1] Update the spec, data model, contract, plan, research, quickstart, implementation notes, and both READMEs for Halls.
+- [X] T052 [US4] Add the tests in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/AuditedEntityStampTests.cs` (create, update, deactivate, delete, no-op, server clock, client cannot supply, removed account, outside a request), `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/AuditedEntityConventionTests.cs` (every entity derives or is exempt with a reason; columns mapped as required), `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/AuditedEntityPostgresTests.cs` (columns, defaults, a SQL-added row), and the Vitest cases in `iit-academic-portal/src/app/features/configuration/catalogs/catalog-form.spec.ts`.
+- [X] T053 [US4] Write the convention for future entities in `iit-academic-portal-service/README.md` ("Entity conventions"), `specs/design-system.md` ("Record history"), `specs/003-configuration/spec.md` (FR-025), `specs/003-configuration/data-model.md`, `specs/003-configuration/research.md`, and `specs/003-configuration/contracts/configuration-api.md`; note the defaults in `iit-academic-portal-service/database/postgresql/seed-halls.sql`, `iit-academic-portal-service/database/postgresql/seed-divisions.sql`, `iit-academic-portal-service/database/postgresql/seed-districts.sql`, and `iit-academic-portal-service/database/postgresql/seed-upazilas.sql`.
+- [X] T054 [US3] Re-check the seed scripts against soft delete and the audit columns and fix what they missed: the district and upazila scripts looked parents up with plain SQL and so could match a deleted division or district (the application hides deleted rows through a query filter that raw SQL bypasses). They now match only parents that are not deleted, treat a row as present by its fixed id or by its live name, and stop with a clear error if a parent is missing or deleted; the script headers say that deleted rows stay deleted and that the audit columns take the database defaults. Tests in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/GeographySeedScriptTests.cs` cover deleted rows staying deleted on a re-run, a live parent chosen over a deleted one of the same name, and a deleted division being refused.
+- [X] T042 [US1] Update `specs/003-configuration/spec.md`, `specs/003-configuration/data-model.md`, `specs/003-configuration/contracts/configuration-api.md`, `specs/003-configuration/plan.md`, `specs/003-configuration/research.md`, `specs/003-configuration/quickstart.md`, `specs/003-configuration/implementation-notes.md`, `iit-academic-portal/README.md`, and `iit-academic-portal-service/README.md` for Halls.
 
 **Checkpoint**: Halls can be maintained like every other independent catalog, with no relationship to a student, teacher, or other resource.
+
+---
+
+## Phase 9: Degree Credits Addendum - User Story 1 (Priority: P1)
+
+**Goal**: Maintain a required positive credit total on each Degree for Student Management graduation-eligibility calculations.
+
+**Independent Test**: As an active Admin, create and edit a Degree with a positive `Credits to be completed` amount; verify the value persists and appears in responses. Reject a missing, zero, negative, or more-than-two-decimal value without changing the Degree. Verify non-Degree catalogs do not accept this field and existing Degree rows are migrated only from approved values.
+
+### Tests for Degree Credits
+
+- [X] T055 [P] [US1] Add API tests for Degree `creditsToBeCompleted` create/read/update, field-keyed rejection of missing, zero, negative, and over-precision values, and rejection of the field on non-Degree catalogs in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/CatalogCrudTests.cs`.
+- [X] T056 [P] [US1] Add Angular tests for the Degree-only required numeric field, positive values with up to two fractional digits, edit-value loading, request serialization, and validation errors in `iit-academic-portal/src/app/features/configuration/catalogs/catalog-form.spec.ts`.
+- [X] T057 [P] [US1] Add PostgreSQL tests for the Degree credit column's `numeric(8,2)` storage, required/positive constraints, and migration against an empty Degree table in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/ConfigurationPostgresTests.cs`. The assertions are authored; execution awaits `AUDIT_TEST_POSTGRES`.
+- [X] T058 [P] [US1] Confirm whether the target database contains Degree rows; the owner confirmed the Degree table is empty on 2026-10-18, recorded in `specs/003-configuration/quickstart.md`. Do not record any credit totals in source or spec files.
+
+### Implementation for Degree Credits
+
+- [X] T059 [US1] Add `CreditsToBeCompleted` to `iit-academic-portal-service/src/IitAcademicPortal.Domain/Configuration/Degree.cs` as a required positive decimal with at most two fractional digits, and map it in `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/Persistence/PortalDbContext.cs` as `numeric(8,2)` with required and positive-value enforcement.
+- [X] T060 [US1] Generate a versioned EF migration under `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/Persistence/Migrations/` that adds the required positive Degree credit column without a default or embedded totals, relying on the T058-confirmed empty table. If a target contains rows, stop and backfill through a deployment-only owner-approved process before enforcing the required constraint.
+- [X] T061 [US1] Extend `ConfigurationInput`, `ConfigurationItem`, and the Degree-specific configuration resource in `iit-academic-portal-service/src/IitAcademicPortal.Application/Configuration/ConfigurationModels.cs`, `iit-academic-portal-service/src/IitAcademicPortal.Application/Configuration/ConfigurationResource.cs`, and `iit-academic-portal-service/src/IitAcademicPortal.Application/Configuration/ConfigurationResources.cs` to require a positive credit total with at most two fractional digits for Degrees and reject the field for other resources.
+- [X] T062 [US1] Add `creditsToBeCompleted` to Degree-only request/response mapping in `iit-academic-portal-service/src/IitAcademicPortal.Api/Contracts/Configuration/CatalogContracts.cs`, preserving omission from non-Degree responses and field-keyed validation errors.
+- [X] T063 [US1] Add the Degree credit field to `ConfigurationItem`, the Degree resource descriptor, and the generic catalog form in `iit-academic-portal/src/app/features/configuration/configuration.models.ts`, `iit-academic-portal/src/app/features/configuration/catalogs/catalog-form.ts`, and `iit-academic-portal/src/app/features/configuration/catalogs/catalog-form.html`; show a required numeric input with a positive minimum and 0.01 step only for Degrees.
+- [X] T064 [US1] Update the Degree API contract and `specs/003-configuration/quickstart.md` with the required credit field, invalid-value cases, PostgreSQL migration/backfill prerequisite, and validation commands/results in `specs/003-configuration/contracts/configuration-api.md` and `specs/003-configuration/quickstart.md`.
 
 ---
 
@@ -160,10 +184,11 @@
 - **Foundational (Phase 2)**: Depends on Setup; shared name normalization and event definitions block all catalog writes.
 - **User Stories (Phases 3–6)**: Start after Foundational. US1 and US3 can proceed in parallel. US2 depends on US1 because Batches reference Degree, Semester, and Academic Session. US4 is cross-cutting and completes after US1–US3; Admin authorization and audit enforcement are still required within every story from its first endpoint.
 - **Polish (Phase 7)**: Depends on all four stories; approved geography dataset verification additionally depends on owner delivery.
+- **Degree Credits Addendum (Phase 9)**: Extends US1 after the existing catalog work. Credit tests and data preparation precede implementation; the migration depends on an owner-approved mapping for every existing Degree row or confirmation that no Degree rows exist.
 
 ### User Story Dependencies
 
-- **US1 (P1)**: Independent after Foundational; establishes academic catalogs, including Academic Session.
+- **US1 (P1)**: Independent after Foundational; establishes academic catalogs, including Academic Session. The Degree Credits Addendum extends this story and depends on the existing Degree catalog and approved existing-row credit mapping.
 - **US2 (P1)**: Depends on US1 for Degree, Semester, and Academic Session references.
 - **US3 (P1)**: Independent after Foundational; geographic seed is an external owner input for production-source verification.
 - **US4 (P1)**: Cross-cutting verification after US1, US2, and US3. Security and audit implementation are not deferred to this phase.
@@ -174,6 +199,7 @@
 - US1 and US3 can proceed in parallel after Foundational because their entities and routes are independent.
 - Within US2 and US3, frontend forms and backend API work can proceed in parallel after their DTO/contract shapes are agreed.
 - T035 and T036 can run independently after story completion.
+- Degree-credit API, Angular, and PostgreSQL tests (T055–T057) and existing-degree mapping preparation (T058) use separate files and can proceed in parallel; the migration must wait for both the model and approved mapping.
 
 ## Parallel Example: User Stories 1 and 3
 
@@ -184,6 +210,15 @@ After T002–T003 complete:
 After model/contract shapes are stable:
 - Worker A: US1 catalog API/service/UI tasks T009–T013
 - Worker B: US3 importer/API/UI tasks T024–T028
+```
+
+## Parallel Example: Degree Credits Addendum
+
+```text
+Task T055: API validation tests in iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/CatalogCrudTests.cs
+Task T056: Angular Degree-form tests in iit-academic-portal/src/app/features/configuration/catalogs/catalog-form.spec.ts
+Task T057: PostgreSQL Degree-credit tests in iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/ConfigurationPostgresTests.cs
+Task T058: Existing-Degree credit mapping in iit-academic-portal-service/database/postgresql/degree-credit-requirements.json
 ```
 
 ## Implementation Strategy
@@ -200,7 +235,13 @@ After model/contract shapes are stable:
 2. Add US2 Batch management with required references; verify per-Degree name uniqueness.
 3. Add US3 geography management and Admin-authorized seed import; production-source verification waits for the owner file.
 4. Complete US4 cross-cutting authorization/audit verification, then run PostgreSQL and frontend/service gates.
+5. Complete the Degree Credits Addendum using owner-approved values for existing Degrees, then validate Degree create/update and migration behavior.
 
 ### Format Validation
 
 Every task line uses `- [ ] T###`, optional `[P]`, and a required `[US#]` label for user-story tasks. Setup, Foundational, and Polish tasks have no story label. Task IDs are sequential, and every task description names its target source, test, or documentation path.
+
+## Phase 10: Convergence
+
+- [ ] T065 Obtain and validate the owner-approved official geographic dataset and source/version, then reconcile the currently imported Division/District/Upazila data and record verified source fidelity in `specs/003-configuration/quickstart.md` per FR-014, SC-005, and US3/AC-5 (partial).
+- [ ] T066 Run the Configuration PostgreSQL 18 integration tests with `AUDIT_TEST_POSTGRES` against an isolated empty database, verify `DegreeCredits` applies and its storage constraints pass, and record the result in `specs/003-configuration/quickstart.md` per FR-005 and the plan's provider-specific migration testing decision (partial).

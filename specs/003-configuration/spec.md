@@ -97,6 +97,7 @@ As an institutional administrator, I need configuration changes authorized, audi
 - Two Sessions have the same normalized label; reject the duplicate globally. Multiple Batches may reference the same Session.
 - Two batches use the same normalized name for the same Degree, even if they reference different Sessions; reject the duplicate because uniqueness is scoped to Degree, not Session.
 - An optional code is omitted, blank, or differs only by case from an existing code; blank is treated as absent and normalized non-empty codes follow the catalog's uniqueness constraint.
+- A Degree is created or updated with a missing, zero, negative, or non-numeric "Credits to be completed" value; the change is rejected with a field-level explanation.
 - Two catalog types contain the same name, such as an examination type and an IIT degree; they remain independent and do not conflict across catalog types.
 - A referenced Degree or starting Semester is deactivated; existing Batch references and display remain intact, new Batch assignments to it are blocked, and no Batch is cascade-deactivated.
 - A Division or District with children is deactivated; existing geographic parent-child links remain intact, new children or assignments to the inactive parent are blocked, and no descendant is cascade-deactivated.
@@ -119,6 +120,7 @@ As an institutional administrator, I need configuration changes authorized, audi
 - SSC/O-Level, HSC/A-Level, Bachelor, Master, PGDIT, and Others are previous-education examination/qualification categories, not IIT degree records.
 - Academic Sessions are an independent catalog with a globally unique normalized label; they are not authentication sessions and do not represent semester progression.
 - A Batch references exactly one IIT degree/program, exactly one starting semester, and exactly one Academic Session. Degree, Semester, and Academic Session remain independently maintainable; this does not implement semester progression.
+- Each Degree MUST have a required positive numeric "Credits to be completed" total. Student Management uses this degree requirement with passed course results to determine graduation eligibility; Configuration stores the required total but does not calculate a student's completed credits.
 - Geographic references form Division → District → Upazila. They are independent of student profiles and institution addresses.
 - Names are compared after trimming and case normalization within their own catalog. Optional non-empty codes are normalized and unique within the corresponding academic catalog. Geographic Division names are unique globally; District and Upazila names are unique within their parent. Geographic records do not have codes. Batch names are unique within their Degree; a different Degree may reuse the same name.
 - When a referenced Degree, Semester, Academic Session, Division, or District is deactivated, preserve existing references and their display, block new assignments to it, and do not cascade deactivation to dependents.
@@ -133,7 +135,7 @@ As an institutional administrator, I need configuration changes authorized, audi
 - **FR-002**: The portal MUST provide an independent Education Boards catalog with required board name, optional code, and active/inactive status; it MUST NOT associate a board with a student or institution in this feature.
 - **FR-003**: The portal MUST provide independent Education Groups with required name and active/inactive status for values such as Science, Humanities, and Business Studies.
 - **FR-004**: The portal MUST provide independent Examination Types for previous-education categories, including SSC/O-Level, HSC/A-Level, Bachelor, Master, PGDIT, and Others. These records MUST NOT be treated as IIT degrees or contain student academic-history fields.
-- **FR-005**: The portal MUST provide independent Degrees for programs offered by IIT, with required name, optional code, and active/inactive status. Degree records MUST NOT depend on a batch or semester.
+- **FR-005**: The portal MUST provide independent Degrees for programs offered by IIT, with required name, optional code, a required positive numeric "Credits to be completed" total, and active/inactive status. Degree records MUST NOT depend on a batch or semester. Student graduation-eligibility workflows use this total as the degree's required credits; Configuration does not calculate a student's completed credits.
 - **FR-006**: The portal MUST provide independent Semesters with a required name/label, active/inactive status, and an ordering value when required by the existing domain. A Semester MUST NOT depend on a degree, batch, or progression workflow.
 - **FR-007**: The portal MUST provide independent Designations with required name, optional code, and active/inactive status; assignment to a Teacher remains out of scope.
 - **FR-008**: For each catalog, the portal MUST validate required values and reject duplicate normalized names and duplicate normalized non-empty codes within that catalog. Identical names in different catalogs are allowed.
@@ -163,7 +165,7 @@ As an institutional administrator, I need configuration changes authorized, audi
 
 #### Acceptance Criteria
 
-- **AC-001 - Independent catalogs**: Each catalog in FR-001–FR-008 can be maintained independently; validated names/codes reject duplicates within its catalog, while similar names in another catalog remain allowed. (FR-001–FR-008)
+- **AC-001 - Independent catalogs**: Each catalog in FR-001–FR-008 can be maintained independently; validated names/codes reject duplicates within its catalog, while similar names in another catalog remain allowed. Degree create/update requires a positive numeric "Credits to be completed" value and rejects missing, zero, negative, or non-numeric values. (FR-001–FR-008)
 - **AC-002 - Batch integrity**: Every Batch has a name and references exactly one valid Degree, one valid starting Semester, and one active Session; missing or invalid references and duplicate normalized names within the same Degree are rejected, the same name is accepted for a different Degree regardless of Session, and Degree/Semester/Session remain independently maintainable. (FR-005–FR-006, FR-009–FR-011)
 - **AC-003 - Geographic integrity and seed**: Division, District, and Upazila data follow the confirmed source and exact parent relationships; invalid/cross-branch relationships and duplicate normalized names at the specified global/parent scope are rejected. Geographic records have no codes. (FR-012–FR-015)
 - **AC-004 - Lifecycle safety**: Deactivation of a referenced Degree, Semester, Academic Session, Division, or District preserves existing links and display, blocks new assignments to the inactive record, and does not cascade deactivation. Physical deletion never cascades away or orphans dependents. (FR-016–FR-017)
@@ -178,7 +180,7 @@ As an institutional administrator, I need configuration changes authorized, audi
 - **Education Board**: Independent examination authority; required name, optional code, status.
 - **Education Group**: Independent school/college academic group; required name and status.
 - **Examination Type**: Independent previous-education qualification category; name and status; not an IIT degree or student-history record.
-- **Degree**: Independent IIT-offered degree/program; name, optional code, status.
+- **Degree**: Independent IIT-offered degree/program; name, optional code, required positive numeric "Credits to be completed" total, and status.
 - **Semester**: Independent semester label and optional domain-required order; status.
 - **Designation**: Independent teacher designation catalog; name, optional code, status.
 - **Hall**: Independent university residential hall catalog; required name, optional code, optional address, status.
@@ -199,6 +201,7 @@ As an institutional administrator, I need configuration changes authorized, audi
 - **SC-005**: 100% of loaded geographic records match the approved source/version and pass parent-reference validation before being made selectable.
 - **SC-006**: At least 95% of representative Admin participants can find and update or deactivate a specified catalog record within two minutes without assistance.
 - **SC-007**: 100% of non-Admin sessions cannot see or directly access the Configuration management route; unreferenced records can be deleted by Admin, while referenced-record deletion is rejected without cascading.
+- **SC-008**: 100% of Degree create/update attempts without a positive numeric "Credits to be completed" value are rejected without changing the Degree record.
 
 ## Assumptions
 
