@@ -21,6 +21,14 @@
 - **Rationale**: This implements the spec's whitespace/case duplicate cases at both the application and database boundaries while preserving entered display text.
 - **Alternatives considered**: Application-only duplicate checks were rejected because concurrent writes can race. Cascading deletes/deactivation were rejected by the lifecycle requirements. Exact field length caps are not specified; choose and enforce bounded API/database values together during implementation, informed by the owner seed values, without adding a new business constraint in this plan.
 
+### Degree credit requirement
+
+- **Finding**: `Degree` currently has only the shared name/active fields and optional code. It is registered through the generic `CodedResource<Degree>` flow; the shared request/response models and Angular resource descriptor have no numeric-field support. No existing Degree credit property or credit seed was found.
+- **Decision**: Add `CreditsToBeCompleted` to Degree as a required positive decimal with up to two fractional digits, persisted as `numeric(8,2)`. Add a Degree-specific resource validator so missing, zero, negative, or over-precision values return a field error; expose JSON as `creditsToBeCompleted` only for Degree requests/responses; add a numeric editor to the existing Degree form. Other catalogs continue rejecting this field.
+- **Existing data prerequisite**: A NOT NULL migration on an existing Degrees table requires an owner-approved positive credit-total mapping for every pre-existing Degree row. Do not backfill guessed values or a sentinel zero. Supply a mapping before generating/applying the migration; if there are no existing Degree rows, the mapping is unnecessary.
+- **Rationale**: A positive numeric total supports fractional credit values while preserving Degree as an independent reference record. A Degree-specific extension keeps the existing generic catalog behavior for unrelated resources.
+- **Alternatives considered**: Storing credits as free text, allowing null/zero totals, or adding the field to every catalog request were rejected because they weaken validation or pollute unrelated resources.
+
 ### Authorization and audit
 
 - **Finding**: `PortalPolicies.AdminModule` authorizes only the server-validated session's active Admin role. `IAuditEventRecorder.Stage` adds a business event to the current unit of work without saving; the caller saves the change and event together through `PortalDbContext`.
