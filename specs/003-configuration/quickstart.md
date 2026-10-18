@@ -9,13 +9,27 @@
 
 - Node.js 24 LTS and .NET 10 SDK.
 - PostgreSQL 18 with the existing portal database configured; the service README documents Development secrets and connection strings.
-- The feature migration (`ConfigurationReferenceData`, `AddHalls`, then `SoftDeleteConfiguration`, then `AuditedEntityColumns`) applied through the existing schema-owner workflow. It only adds tables, and the runtime role's default privileges cover them.
+- The existing feature migrations (`ConfigurationReferenceData`, `AddHalls`, `SoftDeleteConfiguration`, and `AuditedEntityColumns`) applied through the schema-owner workflow. `DegreeCredits` is generated; the owner confirmed the target Degree table is empty on 2026-10-18. Reverify that it is still empty immediately before applying the migration, which adds the required column without a default. If rows exist, stop and obtain owner-approved totals through a deployment-only backfill; do not put those values in source or spec files. The runtime role's default privileges cover schema changes.
 - Development Admin account (`admin@iit.test`) configured with `DevelopmentSeed:Password`.
 - For seed acceptance, the owner-approved JSON file with source citation/version. Do not substitute manually compiled or invented geography data.
 
 ## Build and Automated Tests
 
 Run from the repository root after implementation:
+
+Do not run `dotnet ef database update` against a target database until the Degree-credit prerequisite above is satisfied and recorded.
+
+## Degree Credits Addendum Status (2026-10-18)
+
+| Check | Result |
+|---|---|
+| Focused backend catalog tests | 84 passed, 0 failed |
+| Full backend API suite | 501 passed, 49 PostgreSQL tests skipped, 0 failed |
+| Focused PostgreSQL configuration tests | 9 skipped because `AUDIT_TEST_POSTGRES` is unset; test assembly builds successfully |
+| Full frontend suite | 116 passed (15 files), 0 failed |
+| Frontend production build | Succeeds |
+
+Degree create/read/update validation and the Degree-only form are implemented. The PostgreSQL precision/required/positive-value assertion is authored but could not execute without the database connection. `DegreeCredits` adds `numeric(8,2) NOT NULL` and a positive-value constraint with no default or embedded backfill; its generated SQL was inspected and the EF model snapshot is current. The owner confirmed the target Degree table is empty on 2026-10-18, so no mapping file or credit total is recorded here. The migration has not been applied; reverify the table is empty before applying it.
 
 ```powershell
 Push-Location iit-academic-portal-service
@@ -31,14 +45,15 @@ npm run build
 Pop-Location
 ```
 
-The service suite must pass its SQLite pipeline tests. Run the PostgreSQL integration suite with the documented `AUDIT_TEST_POSTGRES` connection configured to verify actual migrations, nullable/composite unique indexes, restrictive foreign keys, and transactional audit behavior.
+The service suite must pass its SQLite pipeline tests. Run the PostgreSQL integration suite with the documented `AUDIT_TEST_POSTGRES` connection configured to verify actual migrations, Degree credit backfill/positive-value constraints, nullable/composite unique indexes, restrictive foreign keys, and transactional audit behavior.
 
 ## End-to-End Scenarios
 
 1. Start PostgreSQL, then run the service using its HTTPS profile from `iit-academic-portal-service`; start the Angular dev server from `iit-academic-portal`. Open `https://localhost:7286/swagger` and `http://localhost:4200`.
 2. Sign in as the Development Admin. Verify the Configuration menu appears in the Admin module and opens `/admin/configuration`. Create, search, update, and deactivate one record in each independent catalog, including an Academic Session and a Hall (name, optional code, optional address). Verify the fixed institution-type choices and that similar names in separate catalogs are allowed.
-3. Create a duplicate name with case, surrounding whitespace, and repeated internal spaces changed; verify a field-level validation error and no stored change. Repeat with an optional code differing only by case.
-4. Create two active Degrees, Semesters, and Academic Sessions. Verify duplicate normalized Session labels are rejected globally, while multiple Batches can reference the same Session. Create Batches with a name and one active Session and verify success; omit the name or Session, or supply an inactive/nonexistent Session, and verify rejection. Create equal Batch names under different Degrees and verify both succeed; create the duplicate under one Degree and verify rejection regardless of Session. Deactivate a referenced Session and verify existing Batches still display it while new assignments are rejected.
+3. Create a Degree with a positive `creditsToBeCompleted` value such as `120`; verify create, read, and update preserve the value. Try omitting the field and submitting zero, a negative value, or more than two fractional digits; each must return a field-keyed 400 and leave the Degree unchanged.
+4. Create a duplicate name with case, surrounding whitespace, and repeated internal spaces changed; verify a field-level validation error and no stored change. Repeat with an optional code differing only by case.
+5. Create two active Degrees with valid required-credit totals, Semesters, and Academic Sessions. Verify duplicate normalized Session labels are rejected globally, while multiple Batches can reference the same Session. Create Batches with a name and one active Session and verify success; omit the name or Session, or supply an inactive/nonexistent Session, and verify rejection. Create equal Batch names under different Degrees and verify both succeed; create the duplicate under one Degree and verify rejection regardless of Session. Deactivate a referenced Session and verify existing Batches still display it while new assignments are rejected.
 5. (Needs the owner file.) As the active Admin, submit the owner-approved JSON body to `POST /api/admin/configuration/geography/import/validate`. Confirm the report cites the exact source/version and reports per-level counts without writing data. After a clean report, submit it to `POST /api/admin/configuration/geography/import`; verify every District and Upazila has the correct parent. Re-run and verify it reports conflicts without partial writes or overwrites.
 6. Deactivate a referenced Division or District. Verify existing children remain visible, new children/assignments under it are rejected, and descendants are not deactivated. Delete an unreferenced record and verify 204 plus an audit event, that it no longer appears in lists or opens (404), that its name can be created again, and that the row is still in the database marked deleted (who and when); attempt to delete a referenced Degree or Division and verify 409, no cascade, and a deactivation alternative. Attempt a cross-branch District/Upazila parent and verify rejection.
 7. Switch the session's active role away from Admin; verify the menu entry is absent and direct navigation is denied. Call POST, PUT, and DELETE configuration endpoints directly through Swagger and verify 403. Repeat anonymously for 401. Return to Admin and verify successful create/update/deactivate/delete operations appear in `/api/audit-events` with safe allowlisted changes.

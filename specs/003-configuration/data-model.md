@@ -23,7 +23,7 @@
 | `EducationBoard` | `Id`, `Name`, `NormalizedName`, nullable `Code`/`NormalizedCode`, `IsActive` | Independent catalog. Unique `NormalizedName`; unique non-null `NormalizedCode` within this entity type. |
 | `EducationGroup` | `Id`, `Name`, `NormalizedName`, `IsActive` | Independent catalog. Unique `NormalizedName`. |
 | `ExaminationType` | `Id`, `Name`, `NormalizedName`, `IsActive` | Independent previous-education category. Unique `NormalizedName`; not an IIT degree or student-history record. |
-| `Degree` | `Id`, `Name`, `NormalizedName`, nullable `Code`/`NormalizedCode`, `IsActive` | Independent IIT program catalog. Unique `NormalizedName`; unique non-null `NormalizedCode` within this entity type. |
+| `Degree` | `Id`, `Name`, `NormalizedName`, nullable `Code`/`NormalizedCode`, required `CreditsToBeCompleted` (`numeric(8,2)`), `IsActive` | Independent IIT program catalog. Credits must be greater than zero, with at most two fractional digits. Unique `NormalizedName`; unique non-null `NormalizedCode` within this entity type. Student Management uses the value as the degree's required-credit total; this catalog does not store earned credits. |
 | `Semester` | `Id`, `Name` (display label), `NormalizedName`, `IsActive` | Independent catalog. Unique `NormalizedName`. No order field is needed by an existing domain rule; sort consistently by normalized name unless an approved requirement establishes ordering. |
 | `AcademicSession` | `Id`, `Name` (display label), `NormalizedName`, `IsActive` | Independent academic-session catalog, distinct from authentication `AuthSession`. Unique `NormalizedName` globally. |
 | `Designation` | `Id`, `Name`, `NormalizedName`, nullable `Code`/`NormalizedCode`, `IsActive` | Independent catalog. Unique `NormalizedName`; unique non-null `NormalizedCode` within this entity type. |
@@ -32,6 +32,10 @@
 | `Division` | `Id`, `Name`, `NormalizedName`, `IsActive` | Top geographic level. Unique `NormalizedName` globally. |
 | `District` | `Id`, `DivisionId`, `Name`, `NormalizedName`, `IsActive` | Exactly one Division. Unique (`DivisionId`, `NormalizedName`). Restrict physical parent deletion. |
 | `Upazila` | `Id`, `DistrictId`, `Name`, `NormalizedName`, `IsActive` | Exactly one District. Unique (`DistrictId`, `NormalizedName`). Restrict physical parent deletion. |
+
+### Degree Credit Migration Prerequisite
+
+The Degree credit column is required for new and updated records. Before applying a migration that makes it non-null, provide an owner-approved positive credit total for every existing Degree row. The migration MUST NOT assign guessed values, zero, or a universal default. If existing degrees have no approved mapping, keep the migration unapplied until the mapping is supplied.
 
 ## Seed Data
 
@@ -49,6 +53,7 @@ run in that order. Their ids are fixed version 5 UUIDs derived from the level an
 
 - Normalized names are unique inside their own catalog. Equal names in different catalogs are allowed.
 - Optional normalized codes are unique inside their own academic catalog when non-null. Geographic entities have no code fields.
+- `Degree.CreditsToBeCompleted` is required, positive, and limited to two fractional decimal places. Create/update validation returns a field error for missing, zero, negative, or over-precision values.
 - Division normalized names are unique globally; District and Upazila normalized names are unique within their parent.
 - Academic Session normalized names are unique globally. Multiple Batches may reference one Session.
 - A Batch normalized name is unique only within its Degree; its required Session does not alter that scope.

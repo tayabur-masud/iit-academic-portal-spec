@@ -19,7 +19,7 @@
 | `/api/admin/configuration/education-boards` | `name`, optional `code`, `isActive` | Independent of institutions and students. |
 | `/api/admin/configuration/education-groups` | `name`, `isActive` | Independent catalog. |
 | `/api/admin/configuration/examination-types` | `name`, `isActive` | Previous-education categories only. |
-| `/api/admin/configuration/degrees` | `name`, optional `code`, `isActive` | Independent of Batch and Semester. |
+| `/api/admin/configuration/degrees` | `name`, optional `code`, required `creditsToBeCompleted`, `isActive` | Independent of Batch and Semester. Credits must be positive and have at most two fractional digits. |
 | `/api/admin/configuration/semesters` | `name`, `isActive` | Independent of Degree and Batch. |
 | `/api/admin/configuration/academic-sessions` | `name`, `isActive` | Globally unique normalized name; a Session is distinct from authentication sessions and may be shared by Batches. |
 | `/api/admin/configuration/designations` | `name`, optional `code`, `isActive` | No Teacher assignment in this feature. |
@@ -29,7 +29,7 @@
 | `/api/admin/configuration/geography/districts` | `divisionId`, `name`, `isActive` | Name is unique within Division; parent must exist and be active for new/reassigned children. |
 | `/api/admin/configuration/geography/upazilas` | `districtId`, `name`, `isActive` | Name is unique within District; parent must exist and be active for new/reassigned children. |
 
-For each collection, expose `GET` (list) and `POST` (create); for each `/{id}`, expose `GET` (detail), `PUT` (update/deactivate), and `DELETE` (soft delete if unreferenced). IDs are UUIDs. Responses add `id` and the persisted display fields; they never return normalized fields. A blocked delete returns `409 Conflict` with a safe explanation and the option to deactivate; a missing ID returns 404.
+For each collection, expose `GET` (list) and `POST` (create); for each `/{id}`, expose `GET` (detail), `PUT` (update/deactivate), and `DELETE` (soft delete if unreferenced). IDs are UUIDs. Responses add `id` and the persisted display fields, including `creditsToBeCompleted` for Degrees; they never return normalized fields. A blocked delete returns `409 Conflict` with a safe explanation and the option to deactivate; a missing ID returns 404.
 
 ## Collection Queries and Responses
 
@@ -42,6 +42,7 @@ For each collection, expose `GET` (list) and `POST` (create); for each `/{id}`, 
 ## Validation and Audit Events
 
 - Duplicate academic-catalog names/codes and duplicate geographic names at the specified global/parent scope return field-specific validation errors after normalization; database uniqueness remains the final concurrency boundary.
+- Degree create and update require `creditsToBeCompleted` greater than zero, with no more than two fractional digits; missing, zero, negative, or over-precision values return a field-keyed 400 on `creditsToBeCompleted`.
 - Missing, invalid, or inactive Batch Degree/Semester/Session references and duplicate normalized Batch names within a Degree return field-keyed validation errors without mutating data.
 - Invalid/cross-branch geographic references return field-keyed validation errors without mutating data.
 - Feature-owned event names follow `configuration.{resource}.{created|updated|deactivated|deleted}`. Metadata and change summaries are allowlisted and contain no unrelated personal data. A successful seed import records source citation/version and per-level counts in one bulk event.
