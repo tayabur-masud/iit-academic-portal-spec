@@ -187,6 +187,8 @@ Login, forgot-password, and password-reset screens MUST be focused, uncluttered,
 
 The page heading, form, and actions stay left-aligned for scanning. Implement the header once as a shared component rather than repeating it on each page.
 
+**Password fields:** every password input (sign-in, reset password, account setup, and their confirmations) has a show/hide button inside its right edge: an eye icon that becomes an eye with a slash while the password is shown. It is a real 44px button that keeps the shared focus ring, is named for what it will do ("Show password" / "Hide password", or "Show new password" and so on), reports its state with `aria-pressed`, and never submits the form. The password starts hidden every time the screen opens. In the frontend, wrap the input and `<app-password-toggle>` in `.password-field`.
+
 **Favicon and app icons:** derive them from the approved logo, without recoloring it or changing its proportions.
 - **Browser tab** (`favicon.ico`, 16, 32, and 48px): the "IIT" lettermark only, cropped above the "University of Dhaka" bar because the bar text cannot be read at these sizes. Center it at 92% of the width on a white rounded square (corner radius 18%), which keeps it legible on light and dark browser chrome.
 - **Home screen** (`apple-touch-icon.png`, 180px): the full logo at 84% of the width on a square white tile. The platform applies its own corner mask.
