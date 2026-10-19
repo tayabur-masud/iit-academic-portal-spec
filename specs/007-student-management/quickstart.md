@@ -59,7 +59,7 @@ Run on Windows 11 with .NET 10 SDK, Node 24, and a local PostgreSQL 18 server.
 | `dotnet test` without `AUDIT_TEST_POSTGRES` | 933 passed, 77 skipped (76 PostgreSQL-gated tests, plus the Coordinator release-gate test) |
 | `npm test -- --watch=false` | 287 passed (27 files) |
 | `npm run build` | Succeeded; initial bundle 483.07 kB (budget 500 kB); the student pages are lazy chunks |
-| Migration `StudentManagement` | Applied to the disposable PostgreSQL test databases, and on 2026-10-19 to the Development database at the project owner's request (together with the pending `DegreeCredits` migration from feature 003). No shared or Production database was changed |
+| Migration `StudentManagement` | Applied to the disposable PostgreSQL test databases, and on 2026-10-19 to the Development database at the project owner's request (together with the pending `DegreeCredits` migration from feature 003). `StudentHistoryCatalogReferences` (academic-history catalog references) was applied to the Development database the same day. No shared or Production database was changed |
 
 Automated coverage by scenario: first admission, account reuse, PGDIT-then-EMIT, non-Student email, required fields, history, addresses,
 directory, lookup, and authorization (1-5, 9, 10) in `StudentAdmissionTests`; atomic creation, audit, setup activation, reuse without

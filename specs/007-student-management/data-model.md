@@ -51,13 +51,18 @@ Zero or more child entries belong to a StudentProfile and preserve the person's 
 | StudentProfileId | UUID | Yes | Required parent relationship; history survives changes to any one program admission. |
 | Category | Fixed enum | Yes | SSC/O-Level, HSC/A-Level, Bachelor/Graduation, Master, PGDIT, or Other. |
 | Examination | String snapshot | No | Optional source-form label when distinct from Category. |
-| SchoolOrCollege | String snapshot | No | Optional value exactly as supplied on the source form. |
-| Board | String snapshot | No | Optional value exactly as supplied; not a foreign key to the mutable EducationBoard catalog. |
-| Group | String snapshot | No | Optional value exactly as supplied; not a foreign key to the mutable EducationGroup catalog. |
+| SchoolOrCollege | String snapshot | No | The chosen institution's name when chosen, otherwise the value typed from the form. |
+| SchoolOrCollegeId | UUID | No | Restrictive reference to an EducationalInstitution of type School or College, when chosen from the catalog. |
+| Board | String snapshot | No | The chosen board's name when chosen, otherwise the value typed from the form. |
+| BoardId | UUID | No | Restrictive reference to an EducationBoard, when chosen. |
+| Group | String snapshot | No | The chosen group's name when chosen, otherwise the value typed from the form. |
+| GroupId | UUID | No | Restrictive reference to an EducationGroup, when chosen. |
 | Department | String snapshot | No | Optional value exactly as supplied on the source form. |
-| University | String snapshot | No | Optional value exactly as supplied on the source form. |
+| University | String snapshot | No | The chosen university's name when chosen, otherwise the value typed from the form. |
+| UniversityId | UUID | No | Restrictive reference to an EducationalInstitution of type University, when chosen. |
 | Subject | String snapshot | No | Optional value exactly as supplied on the source form. |
-| Institution | String snapshot | No | Optional value exactly as supplied on the source form. |
+| Institution | String snapshot | No | The chosen institution's name when chosen, otherwise the value typed from the form. |
+| InstitutionId | UUID | No | Restrictive reference to an EducationalInstitution of any type, when chosen. |
 | Year | String snapshot | No | Optional value exactly as supplied, preserving the form's representation. |
 | MarksObtained | String snapshot | No | Optional value exactly as supplied, preserving precision/format. |
 | MarksPercentage | String snapshot | No | Optional value exactly as supplied, preserving precision/format. |
@@ -65,7 +70,7 @@ Zero or more child entries belong to a StudentProfile and preserve the person's 
 | Class | String snapshot | No | Optional value exactly as supplied on the source form. |
 | Division | String snapshot | No | Optional value exactly as supplied on the source form. |
 
-Only Category is a controlled value. Every other prior-education field is an optional text snapshot, not a foreign key to a mutable Configuration catalog, so values absent from catalogs and their original paper-form representations are retained. A previously recorded IIT program admission (for example, PGDIT) remains a separate admission under the profile and is not duplicated as an academic-history entry. A program not previously recorded in Student Management may be entered once as profile-level academic history.
+Category is a controlled value. School/college, university, institution, board, and group reference their Configuration catalog record when one is chosen and always keep a name snapshot: the catalog name when the record was first chosen for the row, which later renames or deactivations never rewrite (a row that keeps the same record keeps its snapshot). A newly chosen record must be active and, for school/college and university, of the fitting type. A value not in a catalog is typed and kept without a reference. Every other prior-education field is an optional text snapshot. A catalog record used by any history row cannot be deleted (deactivate it instead). A previously recorded IIT program admission (for example, PGDIT) remains a separate admission under the profile and is not duplicated as an academic-history entry. A program not previously recorded in Student Management may be entered once as profile-level academic history.
 
 ## GraduationEligibility
 

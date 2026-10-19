@@ -16,6 +16,12 @@ Decisions the plan left open, and where the code goes beyond a first reading of 
   are often incomplete.
 - **Registration number** is trimmed for display and compared case- and space-insensitively (`NameNormalizer.NormalizeCode`), across all
   admissions, including those of deactivated accounts.
+- **Catalog choices in history** (revision of FR-003 on 2026-10-19). School/college, university, institution, board, and group are chosen
+  from Educational institutions, Education boards, and Education groups, filtered by type for each field (Schools and Colleges, Universities,
+  any). Each row stores the reference (`SchoolOrCollegeId`, `UniversityId`, `InstitutionId`, `BoardId`, `GroupId`; migration
+  `StudentHistoryCatalogReferences`) and a name snapshot set from the catalog when the record is newly chosen; a row that keeps the same record
+  keeps its saved snapshot, so renames never rewrite history. An unlisted value is typed ("Not listed: type the name") and stored without a
+  reference. Those catalog records cannot be deleted while history uses them.
 - **Academic history** keeps a `SortOrder` so rows are shown as entered. An update sends the complete list: rows with an `id` are kept and
   updated, rows without one are added, and rows left out are removed. Only `Category` is controlled (six enum names).
 - **Configuration records in use.** Deleting a Degree, Batch, Hall, or Upazila that an admission or address uses is refused like any

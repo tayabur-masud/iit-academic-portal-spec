@@ -34,6 +34,7 @@
 - **Decision**: Store zero or more `StudentAcademicHistory` entries as children of StudentProfile, shared across the person's program admissions. `Category` is a fixed six-value enum; every other applicable source-form value (examination label, institution, board, group, department, university, subject, year, marks, percentage, CGPA, class, and division) is an optional text snapshot, not a Configuration foreign key.
 - **Rationale**: Prior qualifications describe the person rather than one enrollment. The source forms vary by education category and leave some values blank. Snapshot strings preserve the entered values even when they are absent from or later differ from mutable catalogs, and avoid requiring fields the source form omits.
 - **Alternatives considered**: Mutable Configuration references were rejected for historical values because they could change or prevent entry of unlisted source-form values. One wide mandatory row was rejected because it would require irrelevant fields. Scans or photos were rejected by the specification.
+- **Revision (2026-10-19)**: Institutions, boards, and groups are now selected from their Configuration catalogs, as the project owner asked, without losing the rationale above: each choice stores the catalog reference plus a name snapshot taken when it is chosen (later renames never rewrite history), and an unlisted value can still be typed and kept as text. Institutions are filtered by type for each field.
 
 ### Completed-credit source and eligibility
 
