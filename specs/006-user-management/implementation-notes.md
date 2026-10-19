@@ -52,3 +52,13 @@ Decisions made during implementation that the plan left open, and where the code
 - **SC-002 usability study** with 10 representative Admins: not run.
 - **Operational gates** (unchanged from the plan): public https setup URL in Production, a persisted and shared Data Protection key ring (setup
   links are protected with it and become invalid if keys are lost), the first-Admin bootstrap, and a Production email provider.
+
+## Setup link check (2026-10-19)
+
+Opening an already-used setup link used to show the password form, and only submitting revealed that the link was no longer valid. The
+setup page now checks the link first through `POST /api/auth/account-credential-setup-checks` and shows the form only for a usable link.
+The answer is deliberately generic: the server cannot verify a used proof, so saying "this account is already active" would tell anyone with
+an old or forwarded link, or a guessed account ID, whether an account exists and is set up. Every unusable link therefore gets the same
+message, which tells someone who already set a password to sign in. The check changes nothing and is not audited; covered by
+`AccountCredentialSetupTests` and `account-credential-setup.spec.ts`.
+
