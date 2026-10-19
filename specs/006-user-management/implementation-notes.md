@@ -52,3 +52,9 @@ Decisions made during implementation that the plan left open, and where the code
 - **SC-002 usability study** with 10 representative Admins: not run.
 - **Operational gates** (unchanged from the plan): public https setup URL in Production, a persisted and shared Data Protection key ring (setup
   links are protected with it and become invalid if keys are lost), the first-Admin bootstrap, and a Production email provider.
+
+## Correction (2026-10-19)
+
+The Teacher form's pending-account wording was changed after the last frontend test run recorded in quickstart.md, so
+`teacher-form.spec.ts` ("explains a pending account") failed from then on. Feature 007 updated that spec to the current wording; the
+recorded 251-passed result predates that edit.

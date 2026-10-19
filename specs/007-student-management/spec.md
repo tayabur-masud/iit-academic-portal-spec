@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-18
 
-**Status**: Draft
+**Status**: Implemented, except the positive completed-credit integration (blocked on the academic-results owner, tasks.md T022) and the SC-002 usability study (not run, T025)
 
 **Input**: User description: "Use one common admission form for all student types. An Admin receives the paper form and attachments, enters the information, and selects the degree and batch. A Student-role portal user is created when student information is recorded. Students must provide an email and mobile number to complete admission. Assigned hall and registration number are entered later; both must be present before a student can complete graduation."
 

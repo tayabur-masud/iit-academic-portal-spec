@@ -1,6 +1,7 @@
 # Data Model: Student Management
 
-**Feature**: [Student Management](spec.md)
+**Feature**: [Student Management](spec.md)  
+**Status**: Implemented by the `StudentManagement` migration. See [implementation-notes.md](implementation-notes.md) for the required-field, registration-number, and history-ordering decisions.
 
 ## StudentProfile
 

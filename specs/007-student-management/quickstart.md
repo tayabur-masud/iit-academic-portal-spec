@@ -3,7 +3,8 @@
 **Feature**: [Student Management](spec.md)  
 **Plan**: [Implementation plan](plan.md)  
 **Data model**: [data-model.md](data-model.md)  
-**API contract**: [student-management-api.md](contracts/student-management-api.md)
+**API contract**: [student-management-api.md](contracts/student-management-api.md)  
+**Implementation notes**: [implementation-notes.md](implementation-notes.md)
 
 ## Prerequisites
 
@@ -47,3 +48,29 @@ When `AUDIT_TEST_POSTGRES` is configured, run the PostgreSQL integration tests t
 ## Database Migration
 
 Implementation will add StudentProfile, StudentAdmissionRecord, and academic-history schema, foreign keys, and unique constraints through versioned EF migrations. The plan does not generate or apply migrations. Apply them only through the existing schema-owner workflow after the schema and test review.
+
+## Validation Results (2026-10-19)
+
+Run on Windows 11 with .NET 10 SDK, Node 24, and a local PostgreSQL 18 server.
+
+| Check | Result |
+|---|---|
+| `dotnet test` with `AUDIT_TEST_POSTGRES` | 1009 passed, 1 skipped (the feature 006 Coordinator release-gate test) |
+| `dotnet test` without `AUDIT_TEST_POSTGRES` | 933 passed, 77 skipped (76 PostgreSQL-gated tests, plus the Coordinator release-gate test) |
+| `npm test -- --watch=false` | 287 passed (27 files) |
+| `npm run build` | Succeeded; initial bundle 483.07 kB (budget 500 kB); the student pages are lazy chunks |
+| Migration `StudentManagement` | Applied to the disposable PostgreSQL test databases, and on 2026-10-19 to the Development database at the project owner's request (together with the pending `DegreeCredits` migration from feature 003). No shared or Production database was changed |
+
+Automated coverage by scenario: first admission, account reuse, PGDIT-then-EMIT, non-Student email, required fields, history, addresses,
+directory, lookup, and authorization (1-5, 9, 10) in `StudentAdmissionTests`; atomic creation, audit, setup activation, reuse without
+setup, and delivery failure (1, 2, 6) in `StudentProvisioningTransactionTests`; Hall and registration number (7) in
+`StudentIdentifierTests`; eligibility per admission with a fake results provider, and the API's unavailable result (3, 8) in
+`GraduationEligibilityTests`; database constraints in `StudentPostgresTests`; and the Angular specs under `src/app/features/students/`.
+
+### Not done
+
+- **Positive completed-credit integration (T022).** No academic-results owner exists. In the running portal every admission reports its
+  credits as unavailable and is therefore not eligible.
+- **SC-002 usability study (T025).** Not run; record participants, times, assistance, and results here when it is.
+- **Manual end-to-end** with a real setup email and a real admission was not run.
+

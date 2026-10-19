@@ -1,6 +1,6 @@
 # Student Management API Contract
 
-**Status**: Planning contract for [spec.md](../spec.md).
+**Status**: Implemented contract for [spec.md](../spec.md). See [Implemented details](#implemented-details).
 
 ## Security and Common Behavior
 
@@ -44,3 +44,31 @@ The response identifies whether the student is eligible for the requested admiss
 - `404`: the requested student admission does not exist.
 - `400`: a submitted Degree, Batch, or Hall identifier is missing, inactive, nonexistent, or inconsistent with its required relationship; errors are keyed to the corresponding field.
 - `409`: email belongs to a non-Student account, duplicate Student/Degree/Batch admission, duplicate registration number, or a concurrent uniqueness conflict.
+
+## Implemented details
+
+- **Lookup route (added).** `GET /api/admin/students/lookup?email=` returns `status` (`New`, `ExistingStudent`, or `NotStudentAccount`)
+  and, for an existing Student with a profile, `profile` (shared fields, history with ids, and every admission) so the form can prefill a
+  returning Student. An invalid email is a field-keyed 400. Admin only, like every route here.
+- **Create response.** `201` with `admission`, `accountCreated`, `profileCreated`, and `setupEmailRequested` (true only when a new account
+  was created and its setup email was durably requested). Never a link or proof.
+- **Admission response.** `id`, `profile` (`id`, `userId`, `email`, `accountStatus`, personal fields, `mailingAddress` and
+  `permanentAddress` with `details`, `cellNumber`, `upazilaId`/`upazilaName`, `districtId`/`districtName`, `divisionId`/`divisionName`,
+  guardian fields, `academicHistory`, `admissions`), `otherAdmissions`, `degreeId`/`degreeName`, `batchId`/`batchName`,
+  `admissionSerialNumber`, `admissionExamRoll`, `classRoll`, `assignedHallId`/`assignedHallName`, `registrationNumber`, and the admission's
+  created/last-modified facts. Absent optional values are omitted.
+- **Request body.** The same fields for create and update; create also takes `email`. `dateOfBirth` is `yyyy-MM-dd`. `academicHistory`
+  is the complete list (entries with `id` are kept, others added, missing ones removed); `category` is `SscOLevel`, `HscALevel`,
+  `BachelorGraduation`, `Master`, `Pgdit`, or `Other`. Unknown members (for example a photo, attachment, signature, or password) are a 400.
+- **Required fields.** `email` (create), `applicantName`, `applicantMobile`, `degreeId`, `batchId`, `admissionSerialNumber`, and
+  `admissionExamRoll`. Each supplied address needs `details` and `upazilaId`.
+- **Error keys.** Field-keyed 400s use the camelCase path, for example `mailingAddress.upazilaId` or `academicHistory[2].category`.
+  A non-Student email, a duplicate Student/Degree/Batch admission, and a duplicate registration number (compared case- and
+  space-insensitively, across every admission) are 409 with a `detail` message.
+- **Directory.** `search` (applicant name, email, mobile, exam roll, class roll, or registration number), `degreeId`, `batchId`, `page`,
+  `pageSize` (1-100, default 25); ordered by applicant name then admission ID; response `items` (each with `admissionExamRoll` and, when
+  recorded, `classRoll`), `page`, `totalCount`, `totalPages`.
+- **Eligibility.** `admissionId`, `eligible`, `requiredCredits` and `completedCredits` (omitted when unavailable), and `requirements`:
+  `Credits`, `AssignedHall`, `RegistrationNumber`, each `Met`, `NotMet`, or `Unavailable` with a message.
+- **Configuration.** Deleting a Degree, Batch, Hall, or Upazila used by a student is a 409 ("Deactivate it instead").
+
