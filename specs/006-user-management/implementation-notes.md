@@ -56,5 +56,15 @@ Decisions made during implementation that the plan left open, and where the code
 ## Correction (2026-10-19)
 
 The Teacher form's pending-account wording was changed after the last frontend test run recorded in quickstart.md, so
-`teacher-form.spec.ts` ("explains a pending account") failed from then on. Feature 007 updated that spec to the current wording; the
-recorded 251-passed result predates that edit.
+`teacher-form.spec.ts` ("explains a pending account") failed from then on. It now checks the current wording, fixed on
+both `feature/006-user-management` (with the setup-link check) and `feature/007-student-management`; the recorded 251-passed result
+predates that edit.
+
+## Setup link check (2026-10-19)
+
+Opening an already-used setup link used to show the password form, and only submitting revealed that the link was no longer valid. The
+setup page now checks the link first through `POST /api/auth/account-credential-setup-checks` and shows the form only for a usable link.
+The answer is deliberately generic: the server cannot verify a used proof, so saying "this account is already active" would tell anyone with
+an old or forwarded link, or a guessed account ID, whether an account exists and is set up. Every unusable link therefore gets the same
+message, which tells someone who already set a password to sign in. The check changes nothing and is not audited; covered by
+`AccountCredentialSetupTests` and `account-credential-setup.spec.ts`.

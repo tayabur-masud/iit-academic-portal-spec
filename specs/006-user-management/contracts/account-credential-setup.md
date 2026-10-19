@@ -23,6 +23,7 @@
 ## Completion and Activation
 
 - The public setup page accepts the account ID, proof, and new password and posts to `POST /api/auth/account-credential-setups`.
+- Before showing the password form, the page checks the link with `POST /api/auth/account-credential-setup-checks` (body: `userId`, `proof`). The check applies the same proof, purpose, pending-status, and security-stamp rules as completion, changes nothing, and always answers `200` with only `usable`. A used, expired, reissued, tampered, or unknown link is `usable: false` without saying whether the account exists or is active, and the page then shows "This setup link has already been used or is no longer valid. If you have already set your password, sign in with it. Otherwise ask an Admin to send a new setup email." with a sign-in action instead of the form. If the check itself cannot be made, the form is shown and completion decides.
 - Verify the token against the dedicated purpose, pending account status, and current account security stamp. Password-reset proofs are not accepted for setup.
 - Apply the existing password policy. Add the password to the passwordless Identity user, set status to `Active`, rotate the security stamp to consume/invalidate the setup token, stage a safe audit event, and commit these changes atomically.
 - A wrong, expired, replayed, or stale proof makes no account change and returns a generic invalid-link response. Never include account-existence details or proof values in the response/log/audit.
