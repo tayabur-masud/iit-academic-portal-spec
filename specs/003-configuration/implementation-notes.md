@@ -106,7 +106,8 @@ skipped), 323 frontend tests, and a production build. The addenda have had no li
   is accepted. `DistrictResource.HasDependentsAsync` now also counts live City Corporations.
 - The audit event key is `city-corporation`, following the kebab-case keys already used (`academic-session`, `examination-type`).
 - The import accepts the optional `cityCorporations` list, counts it in the report and the audit metadata, and counts its table in the
-  target-empty check. No City Corporation SQL seed was written: the owner has supplied no source data.
+  target-empty check. The owner's list of 13 city corporations (2026-10-21) is in `seed-city-corporations.sql`, built like the other geography seeds; like them it
+  cites no official source.
 - Angular needed only a descriptor; the generic list and form already provide the District column, the Division-to-District cascade, and
   the `districtId` filter. The tests are in `catalogs/catalog-form.spec.ts` and `catalogs/catalog-list.spec.ts`, not a `geography/` spec.
 - Student addresses still reference only Upazilas. Choosing a City Corporation in a student address is not part of this addendum.
@@ -128,10 +129,15 @@ skipped), 323 frontend tests, and a production build. The addenda have had no li
 
 ## Grade scale addendum (2026-10-21)
 
-- **One migration.** At the owner's request the Grade table and its seed went into the existing, unapplied migration instead of a new
+- **One migration, no seed in it.** At the owner's request the Grade table went into the existing, unapplied migration instead of a new
   one. It was regenerated and renamed `CityCorporationsDegreeMinimumCgpaAndGrades` so the name says what it holds; the Degree CGPA backfill
-  (2.50, then no default) was carried over unchanged. The seed is an `INSERT ... ON CONFLICT DO NOTHING` kept as the public constant
-  `InitialGradesSql`, so a test can run it again and prove it never overwrites an edit or restores a deleted band.
+  (2.50, then no default) was carried over unchanged. The ten initial bands were first seeded inside the migration with hand-picked
+  sequential ids; on 2026-10-21 the owner moved them to `database/postgresql/seed-grades.sql`, like the geography seeds, with version 5
+  ids of `grade|LETTER`, and the seed was removed from the migration without a new one.
+- **Seed only into an empty table.** Unlike geography, the bands have a rule across rows (the active ones cover 0-100 exactly once), so
+  adding missing rows one by one could break a scale an Admin has changed. The script therefore adds the ten bands only when `Grades`
+  holds no row at all, live or deleted, and otherwise adds nothing and says so. It takes the same advisory lock as a portal replacement.
+  To reseed, remove the rows with `DELETE FROM "Grades"` (nothing refers to a grade); rows deleted in the screen still count.
 - **Not a generic catalog.** Grade has its own `GradeScaleService`, `IGradeScaleStore`, and `GradeScaleController`. The generic flow saves
   one record at a time, and the 0-100 coverage rule spans records. The controller answers single-band writes with 405.
 - **Replacement.** Every band is checked first (all errors at once), then the coverage of the active bands. The transaction then takes
@@ -142,7 +148,7 @@ skipped), 323 frontend tests, and a production build. The addenda have had no li
   the SQLite check constraints compare numbers through `CAST(... AS REAL)`. PostgreSQL uses plain numeric checks.
 - **SQLite has no seed.** The test host builds its schema without migrations, so API tests load the ten bands through the replacement;
   the seed itself is covered on PostgreSQL.
-- **Editor.** `grades/grade-scale-editor` is a table of the bands with Add band, Remove, Active, Save grade scale, and Discard changes. It
+- **Editor.** `grades/grade-scale-editor` is a table of the bands with Add band, Remove… (confirmed in the row with "Yes, remove" or Cancel), Active, Save grade scale, and Discard changes. It
   sends `upperBoundInclusive` as true exactly for the band ending at 100, so the Admin never sets it by hand. It repeats the service's
   checks and messages before sending, shows service errors against the same band, and keeps edits on failure. A "Record history" card
   shows the latest change to any band.
