@@ -1,6 +1,6 @@
 # Implementation Notes: Configuration
 
-**Branch**: `feature/003-configuration` (spec repo and both submodules) · **Recorded**: 2026-10-14 · **Not committed or pushed**
+**Branch**: `feature/003-configuration` (spec repo and both submodules) · **Recorded**: 2026-10-14, addenda through 2026-10-21 · **Addenda (City Corporation, Degree minimum CGPA, Grade scale) not committed or pushed**
 
 ## Status
 
@@ -10,9 +10,21 @@
 | US2 Batches | Implemented and tested |
 | US3 Geography and seed import | Implemented and tested; the owner's files were imported into the Development database on 2026-10-14 (8 divisions, 64 districts, 492 upazilas), **but they cite no official source** |
 | US4 Protection and references | Implemented and tested (authorization, atomic audit, reference-safe delete on PostgreSQL) |
+| Addendum: Halls, soft delete, created/modified (2026-10-14) | Implemented and tested |
+| Addendum: Degree credits to be completed (2026-10-18) | Implemented and tested, including on PostgreSQL |
+| Addendum: City Corporation (2026-10-20) | Implemented and tested with synthetic import data; not yet walked through by hand |
+| Addendum: Degree minimum CGPA for completion (2026-10-20) | Implemented and tested; existing Degrees get 2.50; not yet walked through by hand |
+| Addendum: Grade scale (2026-10-21) | Implemented and tested, including the seed and concurrency on PostgreSQL; not yet walked through by hand |
 
-All 37 tasks are done. T034 was run with the owner's files; its record, including the three data changes and the caveat that no
-official source was cited, is the Geographic Import Record in `quickstart.md`. Results are in the Verification Record there.
+The original 37 tasks are done; T034 was run with the owner's files (the Geographic Import Record in `quickstart.md`, including the caveat
+that no official source was cited). Of the addendum tasks, these remain open:
+
+- **T065**: an owner-approved official geographic source.
+- **T078, T086, T097**: kept open until their hand-run scenarios are done; every automated suite passes.
+- **T098**: the hand-run Grade scenarios.
+
+The City Corporation, Degree minimum CGPA, and Grade changes share one migration, `CityCorporationsDegreeMinimumCgpaAndGrades`, applied to the Development database on
+2026-10-21 (see the Development database record in `quickstart.md`); no shared or Production database was changed.
 
 ## How it was built, and where it differs from the task text
 
@@ -72,7 +84,9 @@ Decisions made while building, not stated in the spec:
 ## Verification
 
 See the Verification Record in `quickstart.md`: 544 service tests with PostgreSQL, 114 frontend tests, 35 live API
-checks, and a live headless-Chrome run with axe-core on every Configuration screen.
+checks, and a live headless-Chrome run with axe-core on every Configuration screen. The latest automated run (2026-10-21, after the Grade
+scale) is in the City Corporation, Degree Minimum CGPA, and Grade Scale Validation Results there: 1153 service tests with PostgreSQL (1
+skipped), 323 frontend tests, and a production build. The addenda have had no live browser or axe-core run.
 
 ## Not done
 
@@ -83,3 +97,54 @@ checks, and a live headless-Chrome run with axe-core on every Configuration scre
 - The SC-006 usability sessions (95% of Admins find and update or deactivate a record within two minutes).
 - The geography import has no screen; it is used through Swagger as the quickstart describes. Say so if a screen is wanted.
 - No numeric performance target exists in the spec; lists are bounded (page size 25, maximum 100) and cursor-paged.
+
+## City Corporation addendum (2026-10-20)
+
+- `CityCorporation` mirrors `Upazila`: a District child with a name, status, soft delete, and audit columns, and no code. It is a sibling of
+  Upazila, not a child of it, and the two are separate tables, so the same name may be an Upazila and a City Corporation of one District.
+- `CityCorporationResource` reuses the shared reference check, so a new or changed District must be active while an unchanged inactive one
+  is accepted. `DistrictResource.HasDependentsAsync` now also counts live City Corporations.
+- The audit event key is `city-corporation`, following the kebab-case keys already used (`academic-session`, `examination-type`).
+- The import accepts the optional `cityCorporations` list, counts it in the report and the audit metadata, and counts its table in the
+  target-empty check. No City Corporation SQL seed was written: the owner has supplied no source data.
+- Angular needed only a descriptor; the generic list and form already provide the District column, the Division-to-District cascade, and
+  the `districtId` filter. The tests are in `catalogs/catalog-form.spec.ts` and `catalogs/catalog-list.spec.ts`, not a `geography/` spec.
+- Student addresses still reference only Upazilas. Choosing a City Corporation in a student address is not part of this addendum.
+- Not done: the hand-run quickstart scenarios and an approved City Corporation dataset. The migration is applied to the Development database.
+- The table ships in `CityCorporationsDegreeMinimumCgpaAndGrades`, shared with the Degree minimum CGPA and the Grade scale below. The earlier
+  `CityCorporations` and `CityCorporationsDegreeMinimumCgpaAndGrades` migrations were folded into it before either reached any shared database.
+
+## Degree minimum CGPA addendum (2026-10-20)
+
+- `Degree.MinimumCgpaForCompletion` is required, greater than 0 and at most 4.00, with two decimals (`numeric(3,2)`), validated in
+  `DegreeResource` and by the check `CK_Degrees_MinimumCgpaForCompletion_Range`. It is part of the Degree's "completion requirements"
+  flag, so other catalogs refuse it like `creditsToBeCompleted`, and it is in the audit allowlist.
+- The migration backfills 2.50 for existing Degrees (owner decision) and then drops the default, so a new Degree must always send a value
+  and an update that leaves it out is refused instead of being reset.
+- SQLite, used by the test host, stores decimals as text and compared `'4.0'` to `4` as text, which refused 4.00. The check therefore
+  casts to a number on SQLite only; PostgreSQL keeps the plain numeric check, and the migration is unaffected.
+- Graduation eligibility (feature 007) still checks credits only; using the CGPA waits until the portal calculates a student's CGPA.
+- Every existing test that creates a Degree now sends 2.50, through the shared helpers where it could.
+
+## Grade scale addendum (2026-10-21)
+
+- **One migration.** At the owner's request the Grade table and its seed went into the existing, unapplied migration instead of a new
+  one. It was regenerated and renamed `CityCorporationsDegreeMinimumCgpaAndGrades` so the name says what it holds; the Degree CGPA backfill
+  (2.50, then no default) was carried over unchanged. The seed is an `INSERT ... ON CONFLICT DO NOTHING` kept as the public constant
+  `InitialGradesSql`, so a test can run it again and prove it never overwrites an edit or restores a deleted band.
+- **Not a generic catalog.** Grade has its own `GradeScaleService`, `IGradeScaleStore`, and `GradeScaleController`. The generic flow saves
+  one record at a time, and the 0-100 coverage rule spans records. The controller answers single-band writes with 405.
+- **Replacement.** Every band is checked first (all errors at once), then the coverage of the active bands. The transaction then takes
+  the advisory lock, re-reads the live bands, rejects ids that no longer exist, soft deletes the omitted bands and saves, and then applies
+  updates and creations and saves again before committing. Saving deletions first lets a freed letter grade be reused in the same
+  replacement; two existing bands swapping letters is refused rather than worked around.
+- **SQLite.** The test host cannot order by a decimal and stores decimals as text, so the store orders the (small) scale in memory, and
+  the SQLite check constraints compare numbers through `CAST(... AS REAL)`. PostgreSQL uses plain numeric checks.
+- **SQLite has no seed.** The test host builds its schema without migrations, so API tests load the ten bands through the replacement;
+  the seed itself is covered on PostgreSQL.
+- **Editor.** `grades/grade-scale-editor` is a table of the bands with Add band, Remove, Active, Save grade scale, and Discard changes. It
+  sends `upperBoundInclusive` as true exactly for the band ending at 100, so the Admin never sets it by hand. It repeats the service's
+  checks and messages before sending, shows service errors against the same band, and keeps edits on failure. A "Record history" card
+  shows the latest change to any band.
+- **Not done:** the hand-run scenarios 9-11 (T098). The migration is applied to the Development database.
+

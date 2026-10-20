@@ -244,4 +244,145 @@ Every task line uses `- [ ] T###`, optional `[P]`, and a required `[US#]` label 
 ## Phase 10: Convergence
 
 - [ ] T065 Obtain and validate the owner-approved official geographic dataset and source/version, then reconcile the currently imported Division/District/Upazila data and record verified source fidelity in `specs/003-configuration/quickstart.md` per FR-014, SC-005, and US3/AC-5 (partial).
-- [ ] T066 Run the Configuration PostgreSQL 18 integration tests with `AUDIT_TEST_POSTGRES` against an isolated empty database, verify `DegreeCredits` applies and its storage constraints pass, and record the result in `specs/003-configuration/quickstart.md` per FR-005 and the plan's provider-specific migration testing decision (partial).
+- [X] T066 Run the Configuration PostgreSQL 18 integration tests with `AUDIT_TEST_POSTGRES` against an isolated empty database, verify `DegreeCredits` applies and its storage constraints pass, and record the result in `specs/003-configuration/quickstart.md` per FR-005 and the plan's provider-specific migration testing decision. **Done 2026-10-20:** the PostgreSQL suite ran on fresh databases; `DegreeCredits` applies and its `numeric(8,2)`, required, and positive checks pass (quickstart.md, Degree Credits Addendum Status).
+
+## Phase 11: City Corporation Addendum - User Story 3 (Priority: P1)
+
+**Goal**: Add City Corporation as a code-free geographic catalog with exactly one District parent, preserving existing geography behavior and allowing optional owner-supplied seed records.
+
+**Independent Test**: As an active Admin, create, view, search, filter by District, update, deactivate, and delete an unreferenced City Corporation. Verify required active District references, normalized name uniqueness within a District, same-name acceptance in another District, no code field, District deletion protection, import counts/atomicity, and no invented seed data.
+
+### Tests for User Story 3 Addendum
+
+> Add focused tests before implementation and verify they fail for the missing City Corporation behavior.
+
+- [X] T067 [P] [US3] Add City Corporation API tests for required District, missing/nonexistent/inactive District rejection, parent-filtered lists, no code fields, normalized name uniqueness within a District and same-name acceptance across Districts, deactivate/delete behavior, and a District delete conflict while City Corporations remain in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/GeographyTests.cs`.
+- [X] T068 [P] [US3] Extend synthetic geography import tests to cover an optional `cityCorporations` array under each District, count/report fields, duplicate City Corporation names within a District, correct District links, target-empty checks, and all-or-nothing behavior in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/GeographyImportTests.cs`.
+- [X] T069 [P] [US3] Add PostgreSQL integration assertions for the `CityCorporations` migration, restrictive District foreign key, and live-row unique index on `(DistrictId, NormalizedName)` in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/ConfigurationPostgresTests.cs`.
+- [X] T070 [P] [US3] Add Angular tests for the City Corporation list/form descriptor, District filtering, Division-to-District cascade, parent selection, and validation errors in `iit-academic-portal/src/app/features/configuration/catalogs/catalog-form.spec.ts`, `iit-academic-portal/src/app/features/configuration/catalogs/catalog-list.spec.ts`, and `iit-academic-portal/src/app/features/configuration/configuration-home.spec.ts` (the generic catalog form and list serve the geography resources; there is no separate `geography/` folder).
+
+### Implementation for User Story 3 Addendum
+
+- [X] T071 [US3] Add `CityCorporation` in `iit-academic-portal-service/src/IitAcademicPortal.Domain/Configuration/CityCorporation.cs` with inherited `Name`, `NormalizedName`, `IsActive`, soft-delete, and audit fields plus required `DistrictId`; it MUST have no code fields, MUST reference exactly one District, and its normalized name MUST be unique within CityCorporation records for that District.
+- [X] T072 [US3] Map `CityCorporation` in `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/Persistence/PortalDbContext.cs` with a required restrictive District foreign key, a District index, and a partial unique index on `(DistrictId, NormalizedName)` for non-deleted rows; generate the additive EF Core migration under `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/Persistence/Migrations/`.
+- [X] T073 [US3] Add and register `CityCorporationResource` in `iit-academic-portal-service/src/IitAcademicPortal.Application/Configuration/ConfigurationResources.cs` and `iit-academic-portal-service/src/IitAcademicPortal.Application/Configuration/CatalogService.cs` with District-scoped name uniqueness, `districtId` filtering, no code field, and a required active District for create/reassignment while allowing an unchanged inactive District reference; extend `DistrictResource.HasDependentsAsync` so a live City Corporation blocks District deletion.
+- [X] T074 [US3] Add `city-corporations` to the geography route allowlist in `iit-academic-portal-service/src/IitAcademicPortal.Api/Controllers/Configuration/GeographyController.cs`; reuse the existing generic `districtId` request/query/response field and preserve active-Admin, anti-forgery, validation, audit, and lifecycle behavior.
+- [X] T075 [US3] Extend the optional nested `cityCorporations` seed property and name-only schema in `specs/003-configuration/contracts/geographic-seed.schema.json`, and update `GeographySeedValidator`, `GeographyImportService`, and import report fields in `iit-academic-portal-service/src/IitAcademicPortal.Application/Configuration/GeographySeedValidator.cs` and `iit-academic-portal-service/src/IitAcademicPortal.Application/Configuration/GeographyImportService.cs`; validate per-District normalized uniqueness, include City Corporation counts, require its target table to be empty, and insert all records atomically without inventing seed rows.
+- [X] T076 [US3] Add the `city-corporations` descriptor to `iit-academic-portal/src/app/features/configuration/configuration.models.ts` with a required District reference, `districtId` parent filter, and Division-to-District cascade; reuse the existing generic list/form and expose no code input.
+- [X] T077 [US3] Update `specs/003-configuration/data-model.md`, `specs/003-configuration/contracts/configuration-api.md`, and `specs/003-configuration/quickstart.md` with the City Corporation entity, endpoint, optional seed shape, District-scoped uniqueness, lifecycle behavior, migration validation, and an explicit note that production seed acceptance awaits owner-approved source/version data.
+
+**Checkpoint**: City Corporation CRUD, District integrity, the optional import extension, and shared Admin/audit behavior are independently verified without altering existing geographic rows or inventing seed data.
+
+---
+
+## Phase 12: City Corporation Validation & Cross-Cutting Concerns
+
+**Purpose**: Validate the new geographic resource and preserve existing configuration behavior.
+
+- [ ] T078 Run `dotnet test` and the focused PostgreSQL Configuration integration tests from `iit-academic-portal-service/`, plus `npm test -- --watch=false` and `npm run build` from `iit-academic-portal/`; execute the City Corporation quickstart scenarios in `specs/003-configuration/quickstart.md` with synthetic seed data and record results without claiming production source fidelity. **Status (partial):** every automated suite, the PostgreSQL-gated tests, and the production build pass, with synthetic import fixtures (results in quickstart.md, City Corporation Validation Results); the five quickstart scenarios have not been run by hand in a browser, so this stays open until they are.
+
+---
+
+## Phase 13: Degree Minimum CGPA Addendum - User Story 1 (Priority: P1)
+
+**Goal**: Store a required minimum CGPA for completion on each Degree (greater than 0, at most 4.00, two decimals), shipped in the same migration as the City Corporation table. Graduation eligibility does not use it yet.
+
+**Independent Test**: As an active Admin, create and edit a Degree with a minimum CGPA; verify it persists and is returned. Reject a missing, zero, negative, over-4.00, or over-precision value without changing the Degree. Verify other catalogs refuse the field and that a Degree created before the migration receives 2.50.
+
+- [X] T079 [P] [US1] Add API tests for Degree `minimumCgpaForCompletion` create/read/update, the bounds 0.01 and 4.00, rejection of missing, zero, negative, over-4.00, and over-precision values and of an update that omits it, refusal on non-Degree catalogs, and its audit record in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/CatalogCrudTests.cs` and `ConfigurationAuditTransactionTests.cs`.
+- [X] T080 [P] [US1] Add PostgreSQL tests for the `numeric(3,2)` column, its range check, the absence of a column default, and the 2.50 backfill of a Degree that exists before the migration in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/ConfigurationPostgresTests.cs`.
+- [X] T081 [P] [US1] Add Angular tests for the Degree-only required CGPA input, its client validation, edit loading, request serialization, and service errors in `iit-academic-portal/src/app/features/configuration/catalogs/catalog-form.spec.ts`.
+- [X] T082 [US1] Add `MinimumCgpaForCompletion` to `Degree.cs`, map it in `PortalDbContext.cs` as required `numeric(3,2)` with `CK_Degrees_MinimumCgpaForCompletion_Range`, and validate, audit, and project it in `ConfigurationModels.cs`, `ConfigurationResource.cs`, `ConfigurationResources.cs`, `ConfigurationAuditEventDefinitions.cs`, and `CatalogContracts.cs`.
+- [X] T083 [US1] Replace the City Corporation migration with one migration, `CityCorporationsDegreeMinimumCgpaAndGrades`, that also adds the column with a 2.50 backfill for existing Degrees and then drops the column default.
+- [X] T084 [US1] Add the CGPA input to the Degree form in `catalog-form.ts`, `catalog-form.html`, and `configuration.models.ts`.
+- [X] T085 [US1] Update `spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/configuration-api.md`, `quickstart.md`, and both READMEs with the field, its rules, the backfill, and the shared migration.
+- [ ] T086 Walk through quickstart scenario 3 by hand and apply the migration to the Development database. **Status (partial):** the migration was applied to the Development database on 2026-10-21 and both existing Degrees got 2.50 (quickstart.md, Development Database Record); scenario 3 has not been walked through by hand; every automated suite, the PostgreSQL-gated tests, and the production build pass (results in quickstart.md).
+
+---
+
+## Phase 14: Grade Scale Addendum - User Story 1 (Priority: P1)
+
+**Goal**: Provide one Admin-maintained Grade scale shared by every Degree, seeded with the ten screenshot bands and kept as a complete active 0–100 partition through atomic full-scale replacement.
+
+**Independent Test**: As an active Admin, read the ten seeded bands, submit a complete valid replacement, and verify the changes persist globally with one audit trail. Verify invalid gaps, overlaps, duplicate live letter grades, out-of-range values, and invalid numeric grades leave both the scale and audit history unchanged; verify concurrent replacements serialize and that Grade has no Degree, student, or course relationship.
+
+### Tests for User Story 1 Addendum
+
+- [X] T087 [P] [US1] Add Grade scale API/service tests for all ten initial bands, inclusive lower and exclusive upper boundaries (including 0 and 100), duplicate normalized letter grades, percentages outside 0–100, numeric grades outside 0.00–4.00 or with more than two decimal places, gaps, overlaps, invalid full-set submissions with no Grade or audit changes, and audit-failure rollback in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/GradeScaleTests.cs`.
+- [X] T088 [P] [US1] Add PostgreSQL 18 tests for the Grade migration's table, live-row unique letter-grade index, numeric constraints, all ten seeded values, preservation of Admin-edited seed rows, and concurrent full-scale replacements serialized by the transaction-scoped advisory lock in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/GradeScalePostgresTests.cs`.
+- [X] T089 [P] [US1] Add Vitest tests for loading and editing the complete Grade scale, boundary display, valid replacement submission, field-keyed validation feedback, and loading/empty/error states in `iit-academic-portal/src/app/features/configuration/grades/grade-scale-editor.spec.ts`.
+
+### Implementation for User Story 1 Addendum
+
+- [X] T090 [P] [US1] Add `Grade` in `iit-academic-portal-service/src/IitAcademicPortal.Domain/Configuration/Grade.cs` with the shared audited/soft-delete fields, letter-grade name and normalized name, `MarksLowerBound`, `MarksUpperBound`, `UpperBoundInclusive`, `NumericGrade`, `Comment`, and `IsActive`; preserve these constraints verbatim: “Percentage bounds are decimal values between 0 and 100; no extra decimal-rounding rule is imposed by the feature”, “NumericGrade is a decimal between 0.00 and 4.00 with at most two decimal places”, and “Comment is required”; add no Degree, student, or course reference.
+- [X] T091 [US1] Map Grade in `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/Persistence/PortalDbContext.cs` and add the Grade table to the existing unapplied EF migration under `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/Persistence/Migrations/`, renamed `CityCorporationsDegreeMinimumCgpaAndGrades` (owner decision 2026-10-21: one migration with the City Corporation and Degree minimum CGPA changes, not a separate Grade migration), with a required comment, percentage bounds, `NumericGrade` as `numeric(3,2)`, per-band range checks, and a unique normalized letter-grade index over live rows; seed these exact initial bands with stable IDs and insert-only behavior: A+ 80–100 inclusive, 4.00, Excellent; A 75–80, 3.75, Better; A- 70–75, 3.50, Good; B+ 65–70, 3.25, Above Average; B 60–65, 3.00, Average; B- 55–60, 2.75, Below Average; C+ 50–55, 2.50, Satisfactory; C 45–50, 2.25, Not satisfactory; D 40–45, 2.00, Pass; F 0–40, 0.00, Fail. Every lower bound is inclusive and every upper bound exclusive except A+ includes 100; later migrations or seed runs must not overwrite Admin edits. The seed is an insert-only `INSERT ... ON CONFLICT DO NOTHING` (`InitialGradesSql`), with ids in `GradeSeed.InitialIds`.
+- [X] T092 [US1] Implement `GradeScaleService` and application request/response contracts in `iit-academic-portal-service/src/IitAcademicPortal.Application/Configuration/GradeScaleService.cs` and `iit-academic-portal-service/src/IitAcademicPortal.Application/Configuration/GradeScaleContracts.cs`; accept the complete desired band set, acquire a PostgreSQL transaction-scoped advisory lock before validating, require the active bands to cover every percentage from 0 through 100 exactly once, update rows by supplied IDs, create rows without IDs, deactivate included inactive rows, soft-delete omitted unreferenced rows, and commit all row changes with allowlisted audit events in one transaction.
+- [X] T093 [US1] Add `GradeScaleController` and explicit API DTOs in `iit-academic-portal-service/src/IitAcademicPortal.Api/Controllers/Configuration/GradeScaleController.cs` and `iit-academic-portal-service/src/IitAcademicPortal.Api/Contracts/Configuration/GradeScaleContracts.cs`; expose active-Admin/anti-forgery-protected `GET /api/admin/configuration/grades`, `GET /api/admin/configuration/grades/{id}`, and `PUT /api/admin/configuration/grades/scale`, return field-keyed validation errors, and route every Grade mutation through the full-scale workflow rather than per-record writes.
+- [X] T094 [US1] Add Grade scale request/response methods to `iit-academic-portal/src/app/features/configuration/configuration-api.ts` and implement the custom full-set editor in `iit-academic-portal/src/app/features/configuration/grades/grade-scale-editor.ts` and `iit-academic-portal/src/app/features/configuration/grades/grade-scale-editor.html`; submit the complete set and present accessible loading, empty, validation, success, and error states without a Degree selector or student/course grading workflow.
+- [X] T095 [US1] Add the `grades` resource under “IIT academics” in `iit-academic-portal/src/app/features/configuration/configuration.models.ts`, mark it `ownEditor` so the generic catalog list and form refuse it, and register its dedicated editor route before `configuration/:resource` in `iit-academic-portal/src/app/app.routes.ts` so `/admin/configuration/grades` opens the custom scale editor instead of generic per-record CRUD. The Configuration home page lists it from the descriptor, so `configuration-home.html` needs no change.
+- [X] T096 [US1] Align `specs/003-configuration/contracts/configuration-api.md` with the Grade-specific route exception: retain list/detail reads but state that `PUT /grades/scale` is the only Grade mutation route and that create, update, deactivate, and soft-delete are represented through full-set replacement; update `specs/003-configuration/quickstart.md` with the Grade migration prerequisite and runnable valid/invalid boundary, audit, global-sharing, and replacement scenarios.
+
+**Checkpoint**: The active Grade scale is globally shared, complete, and auditable; all writes are serialized full-set replacements, and the initial screenshot bands are seeded without overwriting later Admin changes.
+
+## Phase 15: Grade Validation & Cross-Cutting Concerns
+
+**Purpose**: Verify Grade-specific provider behavior and the end-to-end Admin editing workflow.
+
+- [ ] T097 Run `dotnet test` and the focused Grade PostgreSQL 18 integration tests from `iit-academic-portal-service/`, plus `npm test -- --watch=false` and `npm run build` from `iit-academic-portal/`; record actual Grade results and any PostgreSQL environment limitation in `specs/003-configuration/quickstart.md` without claiming unrun checks passed. **Status (partial):** all automated suites, including the Grade PostgreSQL tests, and the build pass (quickstart.md, Grade Scale Validation Results); kept open with T078 and T086 until the hand-run scenarios are done.
+- [ ] T098 Walk through Grade quickstart scenarios 9–11 using an active Admin session and a disposable PostgreSQL database; verify the seeded values, boundaries, valid full-scale edit, atomic rejection and unchanged audit history for invalid replacements, and the absence of Degree/student/course assignment or calculation behavior, then record outcomes in `specs/003-configuration/quickstart.md`. **Status:** not run.
+
+### Grade Addendum Dependencies & Parallel Opportunities
+
+- Grade work depends on the existing Configuration normalization, active-Admin authorization, audited-entity, soft-delete, and audit-event foundations (T002, T003, T045–T053); it does not depend on Batch or geography implementation.
+- T087, T088, and T089 target separate test files and can be authored in parallel before implementation. T090 can proceed independently; T091 depends on T090; T092 depends on the entity and persistence model; T093 depends on the service contract; T094 and T095 depend on the API shape; T096 should be completed with the endpoint implementation before frontend integration is considered complete. T097–T098 depend on the implementation tasks.
+- MVP for this addendum is T090–T095: the Grade model, seeded migration, atomic replacement API, and Admin editor. Do not mark the MVP complete until T087–T089 pass and the scale invariants are verified.
+
+### Parallel Example: Grade Scale
+
+```text
+Before implementation:
+- Worker A: T087 service/API behavior tests in GradeScaleTests.cs
+- Worker B: T088 PostgreSQL migration/concurrency tests in GradeScalePostgresTests.cs
+- Worker C: T089 Angular editor tests in grade-scale-editor.spec.ts
+- Worker D: T090 Grade domain entity in Grade.cs
+
+After test contracts are stable:
+- Worker A: T090–T093 backend entity, persistence, service, and controller
+- Worker B: T094–T095 Angular API, editor, and route integration
+- Worker C: T096 contract and quickstart alignment
+```
+
+### Grade Addendum Format Validation
+
+All new Grade tasks use unchecked `- [ ]` checkboxes, sequential IDs T087–T098, `[US1]` on story tasks, `[P]` only for independent test tasks, and explicit repository file paths. Previously completed tasks and their statuses are unchanged.
+
+### City Corporation Addendum Dependencies
+
+- Phase 11 depends on the existing Phase 2 shared normalization/audit foundation and the previously implemented US3 geography slice.
+- Author T067-T070 in parallel against separate test files before implementation.
+- T071 and T076 may proceed in parallel after tests; T072 depends on T071.
+- T073 depends on T071; T074 depends on T073; T075 depends on T071 and T072. T077 follows the final request/import shape.
+- T078 depends on all City Corporation implementation and documentation tasks.
+
+### Parallel Example: City Corporation Addendum
+
+```text
+After the existing geography slice is stable, author in parallel:
+T067 geography CRUD and parent-integrity tests
+T068 seed validation/import tests
+T069 PostgreSQL migration/constraint tests
+T070 Angular parent filter and form/list tests
+
+Then implement in dependency order:
+T071 entity and T076 Angular descriptor after tests
+T072 persistence/migration after T071
+T073 resource registration and District dependent check after T071
+T074 geography route after T073
+T075 seed import extension after T071/T072
+T077 docs after contract and import shapes stabilize
+T078 full validation last
+```
+
+## Phase 16: Convergence
+
+- [ ] T099 Run the Grade scale editor as an active Admin at 1280, 768, 375, and 320 px; verify keyboard access and visible focus for every field and action, associated validation feedback, contained table overflow with no page-level horizontal overflow, and zero axe WCAG 2.x A/AA violations; record the browser, viewport, and results in `specs/003-configuration/quickstart.md` per Constitution I and FR-021 (partial).
