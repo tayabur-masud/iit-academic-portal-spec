@@ -1,12 +1,12 @@
 # Implementation Plan: Configuration
 
-**Branch**: `feature/003-configuration` | **Date**: 2026-10-13 | **Spec**: [spec.md](spec.md)
+**Branch**: `feature/003-configuration` | **Date**: 2026-10-20 | **Spec**: [spec.md](spec.md)
 
 **Input**: [Configuration feature specification](spec.md)
 
 ## Summary
 
-Deliver thirteen independently modeled reference entities for Admin maintenance: nine academic catalogs (halls were added on 2026-10-14), Batches, and the Division/District/Upazila hierarchy. Academic Sessions have globally unique normalized labels, every Batch requires one Session reference, and Batch names are unique within their Degree. Each Degree also stores a required positive `CreditsToBeCompleted` total used by Student Management as the graduation credit threshold; Configuration does not calculate earned credits or graduation eligibility. Keep the implementation in the existing Angular + ASP.NET Core layered monolith. Enforce normalized uniqueness, parent/reference integrity, active-role authorization, non-cascading deactivation, and same-unit-of-work business audit. Load the owner-approved geographic JSON through a controlled all-or-nothing importer; do not invent seed data or introduce new runtime dependencies.
+Deliver the existing Admin configuration catalogs plus City Corporation as a fourth geographic entity beside Division, District, and Upazila, and add a global Admin-maintained Grade scale shared by all Degrees. A City Corporation has a required District parent, no code, and a normalized name unique within its District. Extend the existing geography import contract to accept optional City Corporation lists within Districts and include their counts and validation in the existing all-or-nothing import. Grade stores marks bands, letter grades, numeric grades, and comments; seed the ten screenshot bands and preserve a continuous, non-overlapping active 0–100 scale through atomic scale replacement. Academic Sessions retain globally unique normalized labels; every Batch requires one Session, and Batch names are unique within their Degree. Each Degree stores a required positive `CreditsToBeCompleted` total and a required `MinimumCgpaForCompletion` (`numeric(3,2)`, greater than 0 and at most 4.00); Configuration does not calculate earned credits, CGPA, or graduation eligibility. The City Corporation table and Degree CGPA column ship in `CityCorporationsDegreeMinimumCgpaAndGrades`; Grade uses a separate versioned migration. Reuse the existing Angular + ASP.NET Core layered monolith, authorization, audit, and lifecycle conventions. Do not invent City Corporation seed data or add runtime dependencies.
 
 ## Technical Context
 
@@ -14,9 +14,9 @@ Deliver thirteen independently modeled reference entities for Admin maintenance:
 
 **Primary Dependencies**: Existing Angular HttpClient, Router, and reactive forms; Tailwind CSS 4; ASP.NET Core 10, EF Core 10, and Npgsql 10.x. No new package is planned.
 
-**Storage**: PostgreSQL 18 through the existing `PortalDbContext`; schema changes require a versioned EF Core migration. Add a required `Degrees.CreditsToBeCompleted` decimal column with positive-value validation. Existing Degree rows require an owner-approved credit-total mapping before the migration can enforce the required value; do not assign guessed defaults.
+**Storage**: PostgreSQL 18 through the existing `PortalDbContext`. One migration, `CityCorporationsDegreeMinimumCgpaAndGrades`, carries the City Corporation table, the Degree minimum CGPA, and (at the project owner's request, instead of a separate Grade migration) the `Grades` table with its scale-range checks, unique live letter-grade index, and the ten initial bands from the screenshot; persist percentage thresholds without imposing a new decimal scale, and persist numeric grades as `numeric(3,2)`.
 
-**Testing**: xUnit API/integration tests using the real ASP.NET pipeline and SQLite fixture, plus PostgreSQL 18 integration coverage for provider-specific constraints/migrations and the required-credit column/backfill; Angular Vitest component/service tests with `HttpTestingController` for the Degree credit field and validation.
+**Testing**: xUnit API/integration tests using the real ASP.NET pipeline and SQLite fixture, plus PostgreSQL 18 integration coverage for the City Corporation and Grade migrations, restrictive District foreign key, parent-scoped unique indexes, and concurrent Grade-scale replacement; Angular Vitest component/service tests with `HttpTestingController` for District-filtered City Corporation and the Grade scale editor.
 
 **Target Platform**: Browser-based Angular SPA and ASP.NET Core 10 API; local development uses Node.js 24 LTS, .NET 10 SDK, and PostgreSQL 18.
 
@@ -24,9 +24,9 @@ Deliver thirteen independently modeled reference entities for Admin maintenance:
 
 **Performance Goals**: The specification sets no numeric latency or throughput target. Keep small catalogs searchable and return bounded pages where volume warrants it; avoid unbounded geographic or batch results. Establish numeric SLOs only through an approved requirement.
 
-**Constraints**: Only the session's active Admin role authorizes writes. Use existing REST, Problem Details, anti-forgery, audit, and design-system conventions. Preserve references when records are deactivated; use restrictive foreign keys. Geographic data must come from an owner-supplied JSON file citing the approved source/version; validate the complete hierarchy before committing any seed rows. Degree credit totals are required, positive, and limited to two fractional decimal places; degree-credit values are configuration only, while earned credits and graduation eligibility remain with Student Management. No student/teacher workflows, new role, service, framework, or audit system.
+**Constraints**: Only the session's active Admin role authorizes writes. Reuse existing REST, Problem Details, anti-forgery, audit, and design-system conventions. Preserve references when Division or District is deactivated; block new assignments to inactive parents; use restrictive foreign keys. City Corporation names are normalized and unique within the parent District; geographic records have no codes. The owner-approved geographic JSON may include `cityCorporations` for a District; do not invent or require seed rows without an approved source. Grade is one global scale, with active bands continuously and non-overlappingly covering 0–100. All Grade-set changes must validate and save atomically so concurrent Admin writes cannot create a gap or overlap. Preserve the existing Degree credit/CGPA rules and keep student/teacher workflows, new roles, services, frameworks, and audit systems out of scope.
 
-**Scale/Scope**: Nine independent catalogs (institution, board, group, examination type, degree including its required credit total, semester, academic session, designation, hall), one batch resource, and three geographic levels. Geographic row counts are determined by the approved owner dataset and are not assumed here.
+**Scale/Scope**: Fifteen configuration resources: existing academic catalogs, Batch, four geographic entity types (Division, District, Upazila, City Corporation), and one global Grade scale. City Corporation volume is determined by a future owner-approved dataset and is not assumed here; the Grade scale begins with ten bands.
 
 ## Constitution Check
 
@@ -46,9 +46,13 @@ No constitution exception or new dependency is required. The owner-provided geog
 
 1. Add separate domain entities and EF mappings for catalogs, batches, and geography; persist normalized comparison values; add unique indexes and restrictive relationships in one reviewed migration. Extend `Degree` with the required positive credit total and backfill existing Degree rows only from an owner-approved mapping before enforcing the required database value. Name the academic catalog entity/table `AcademicSession`/`AcademicSessions` to distinguish it from authentication `AuthSession`/`AuthSessions`.
 2. Add application use cases for normalization, validation, search/filter/page, lifecycle changes, and relationship checks. Add Degree-specific validation for a required positive credit total with at most two fractional digits. Stage a feature-owned business audit event through `IAuditEventRecorder` and save it with each successful write in the same `PortalDbContext` unit of work.
-3. Add active-Admin-only REST resources, request/response DTOs, field-keyed validation errors, and Admin-authorized geography validate/import endpoints. Degree DTOs expose `creditsToBeCompleted` only for Degree records and reject it for other resources. The importer validates source/version, normalized names, and all parent links before one transaction; invalid input writes nothing and produces a validation report.
+3. Add active-Admin-only REST resources, request/response DTOs, field-keyed validation errors, and Admin-authorized geography validate/import endpoints. Degree DTOs expose `creditsToBeCompleted` and `minimumCgpaForCompletion` only for Degree records and reject them for other resources. The importer validates source/version, normalized names, and all parent links before one transaction; invalid input writes nothing and produces a validation report.
 4. Add an Angular configuration feature under the existing feature tree at `/admin/configuration`; label its Admin module menu entry “Configuration” and guard the route by the active Admin role. Include typed API services, reusable catalog list/form patterns, a Degree-only required credits input, geographic parent selectors, and accessible request states.
 5. Verify API authorization and audit behavior through the real test host, database constraints against PostgreSQL, Angular interactions through Vitest, and the manual end-to-end scenarios in [quickstart.md](quickstart.md).
+6. Extend the geography slice with a `CityCorporation` entity/resource, `city-corporations` route, District-scoped filter and uniqueness, and a District foreign key. Update District dependent checks so City Corporations block parent deletion, and validate active District references on create or reassignment while preserving unchanged inactive historical references.
+7. Extend the nested geographic seed schema and import pipeline with optional `cityCorporations` arrays under Districts. Validate names and counts, include CityCorporations in the empty-target check and atomic insert/audit, but add no fabricated SQL seed; production seed acceptance requires owner-provided source/version data.
+8. Add the City Corporation descriptor and Administration UX to the existing Geography group. Reuse the Division-to-District cascade, then use the selected District for City Corporation filtering and parent selection; keep current Admin guards and accessibility states.
+9. Add `Grade.cs` in `iit-academic-portal-service/src/IitAcademicPortal.Domain/Configuration/`, a dedicated `GradeScaleService.cs` in the Application layer, and a `GradeScaleController.cs` under the API Configuration controllers. Use a full-scale replacement request rather than independent row writes: acquire a PostgreSQL transaction-scoped advisory lock, validate the complete proposed active range set for gap-free, non-overlapping 0–100 coverage, then write creates/updates/deactivations/soft deletes and allowlisted audit events atomically. Add a custom Grade scale editor under `iit-academic-portal/src/app/features/configuration/` instead of forcing cross-band validation into the generic one-record form. Seed the ten screenshot bands in the shared `CityCorporationsDegreeMinimumCgpaAndGrades` migration (owner decision; originally a separate migration); preserve Grade rows after Admin edits by keeping the migration seed insert-only.
 
 ## Project Structure
 
@@ -74,6 +78,7 @@ iit-academic-portal-service/
 ├── src/IitAcademicPortal.Domain/Configuration/
 ├── src/IitAcademicPortal.Application/Configuration/
 ├── src/IitAcademicPortal.Infrastructure/Persistence/PortalDbContext.cs
+├── src/IitAcademicPortal.Infrastructure/Persistence/ConfigurationStore.cs, GradeScaleStore.cs
 ├── src/IitAcademicPortal.Infrastructure/Persistence/Migrations/
 ├── src/IitAcademicPortal.Api/Controllers/Configuration/
 ├── src/IitAcademicPortal.Api/Contracts/
@@ -83,7 +88,8 @@ iit-academic-portal/src/app/features/configuration/
 ├── configuration-api.ts       (typed client for every resource)
 ├── configuration.models.ts    (item types and the descriptor of each resource)
 ├── configuration-home.*       (landing page grouping the resources)
-└── catalogs/                  (the generic list and form that serve all thirteen resources)
+├── catalogs/                  (the generic list and form that serve the fifteen record-by-record resources)
+└── grades/                    (the Grade scale editor: the whole scale in one table, saved together)
 ```
 
 **Structure Decision**: Extend the existing Domain → Application → Infrastructure → API split and Angular feature layout. Keep EF mappings in the current `PortalDbContext` convention, use the existing migrations folder and xUnit/Vitest projects, and do not add a project or package solely for this feature.
