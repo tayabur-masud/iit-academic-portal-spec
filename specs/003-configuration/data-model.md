@@ -47,8 +47,8 @@ and no code. It uses `ON CONFLICT DO NOTHING`, so it can be run again on any dat
 not audited (it does not go through the application). A seeded row an Admin deleted stays deleted (its row and id remain), the created and
 last-modified times take the database default and the "by" columns stay empty (shown as System).
 
-Divisions, Districts, and Upazilas also have owner-supplied seeds: `seed-divisions.sql` (8), `seed-districts.sql` (64), and `seed-upazilas.sql` (492) in the same folder,
-run in that order. Their ids are fixed version 5 UUIDs derived from the level and the normalized names; a child's parent is found by normalized name; they use
+Divisions, Districts, Upazilas, and City Corporations also have owner-supplied seeds: `seed-divisions.sql` (8), `seed-districts.sql` (64), `seed-upazilas.sql` (492),
+and `seed-city-corporations.sql` (13, added 2026-10-21 from the owner's list; Dhaka district has two) in the same folder, run in that order. Their ids are fixed version 5 UUIDs derived from the level and the normalized names; a child's parent is found by normalized name; they use
 `ON CONFLICT DO NOTHING` and are not audited. The source files carried no official citation, and two exact repeats in Natore were left out.
 
 ## Validation and Lifecycle
@@ -74,7 +74,7 @@ The seed document contains a source citation/version and nested Divisions → Di
 
 - Store one Grade row per band. `Name` is the letter grade and its `NormalizedName` is unique among live Grade rows. `MarksLowerBound` is inclusive; `MarksUpperBound` is exclusive except for the uppermost band, which includes 100 through `UpperBoundInclusive`. Percentage bounds are decimal values between 0 and 100; no extra decimal-rounding rule is imposed by the feature. `NumericGrade` is a decimal between 0.00 and 4.00 with at most two decimal places; `Comment` is required.
 - The active Grade rows form one continuous, non-overlapping partition covering every percentage from 0 through 100 exactly once. Inactive Grade rows are excluded from this partition but remain identifiable. A mutation that would violate this invariant is rejected without changing the scale.
-- Seed the ten screenshot bands (A+ 80–100, A 75–80, A- 70–75, B+ 65–70, B 60–65, B- 55–60, C+ 50–55, C 45–50, D 40–45, F 0–40) and their supplied numeric grades/comments in the `CityCorporationsDegreeMinimumCgpaAndGrades` migration (owner decision: one migration instead of a dedicated Grade migration) using stable identifiers, through an `INSERT ... ON CONFLICT DO NOTHING`. Do not update these rows on later migrations or reseed, so Admin edits are preserved.
+- Seed the ten screenshot bands (A+ 80–100, A 75–80, A- 70–75, B+ 65–70, B 60–65, B- 55–60, C+ 50–55, C 45–50, D 40–45, F 0–40) and their supplied numeric grades/comments with the seed script `iit-academic-portal-service/database/postgresql/seed-grades.sql` (owner decision 2026-10-21: a seed script like the geography data, not a migration), using stable identifiers. The script seeds only an empty `Grades` table, so it never updates, adds beside, or restores rows an Admin has changed or deleted; the migration creates the table and its checks only.
 - Grade has no relationship to Degree, student, or course in this feature. Soft-delete only unreferenced bands; changes that deactivate/delete a band must also provide the replacement active bands needed to preserve complete coverage.
 - Apply the entire desired Grade set atomically through the Grade scale write workflow. Serialize writes in PostgreSQL, validate the resulting active partition while holding the serialization guard, and save all row and audit changes in the same transaction.
 
@@ -88,5 +88,6 @@ The seed document contains a source citation/version and nested Divisions → Di
   `IX_Grades_NormalizedName` covers live rows only. There are no foreign keys.
 - Coverage of 0-100 by the active bands is a rule across rows, so it is enforced by `GradeScaleService` under the advisory lock, not by a
   constraint.
-- Seed ids are fixed (`5b0c6a1e-7d3f-5e2a-9c4b-000000000001` for A+ through `...00a` for F; listed in `GradeSeed.InitialIds`).
+- Seed ids are fixed version 5 UUIDs of `grade|LETTER` under the geography seeds' namespace (for example A+ is
+  `0ebd496e-c1c2-572e-9973-00adb99eee78`), written out in `seed-grades.sql`.
 

@@ -47,7 +47,7 @@ Pop-Location
 
 The service suite must pass its SQLite pipeline tests. Run the PostgreSQL integration suite with the documented `AUDIT_TEST_POSTGRES` connection configured to verify actual migrations, Degree credit backfill/positive-value constraints, nullable/composite unique indexes, restrictive foreign keys, and transactional audit behavior.
 
-The `CityCorporationsDegreeMinimumCgpaAndGrades` migration also creates the Grade table and seeds the ten screenshot bands (one migration at the owner's request, instead of a separate Grade migration). Its seed is insert-only, so running it again never overwrites Grade rows changed by Admins or restores a deleted band.
+The `CityCorporationsDegreeMinimumCgpaAndGrades` migration also creates the Grade table (one migration at the owner's request); it seeds nothing. Load the ten screenshot bands with `psql -v ON_ERROR_STOP=1 -d iit_academic_portal -f database/postgresql/seed-grades.sql` from `iit-academic-portal-service/`. The script fills only an empty `Grades` table: if any row exists, live or deleted, it adds nothing and says so, so it never overwrites or works around an Admin's changes. To reseed, run `DELETE FROM "Grades"` first.
 
 ## End-to-End Scenarios
 
@@ -140,6 +140,14 @@ their names and parents were confirmed identical to the script output and nothin
 duplicate division name after normalizing is rejected, and search finds "Cox's Bazar Sadar". Because the tables are now seeded, the import endpoint returns 409 on this
 database (scenario 5 needs empty tables).
 
+`seed-city-corporations.sql` (added 2026-10-21) loads the owner's 13 city corporations: Barishal, Bogura, Chattogram, Cumilla, Dhaka North, Dhaka South,
+Gazipur, Khulna, Mymensingh, Narayanganj, Rajshahi, Rangpur, and Sylhet City Corporation, each under the district of the same name (both Dhaka ones under
+Dhaka). It follows the other scripts: fixed version 5 ids of `city-corporation|DIVISION|DISTRICT|NAME`, the district found by normalized names among live
+rows, `ON CONFLICT DO NOTHING`, and an error with nothing added when a district is missing or deleted. The abbreviations in the owner's list are not
+stored, because geographic records have no code. `GeographySeedScriptTests` covers it on PostgreSQL: all 13 under the right districts with fixed ids
+and normalized names, a second run keeping an Admin's rename, deactivation, and deletion, and the missing-district error. On 2026-10-21 it was run on the
+Development database at the owner's request: 13 rows, each under its own district (both Dhaka ones under Dhaka).
+
 ## Soft Delete Verification (2026-10-14)
 
 After the `SoftDeleteConfiguration` migration was applied to the Development database (all 23 halls and the 8, 64, and 492 geography rows
@@ -161,7 +169,7 @@ PostgreSQL columns and defaults, and the convention that fails when a new entity
 
 ## City Corporation Extension Validation
 
-Run these checks after the City Corporation migration and resource/UI changes are implemented. The currently documented geography seed contains no City Corporation source data; use synthetic City Corporation fixtures for automated import tests and do not claim production seed-source acceptance until the owner supplies an approved dataset and citation.
+Run these checks after the City Corporation migration and resource/UI changes are implemented. The import tests use synthetic City Corporation fixtures. Since 2026-10-21 the owner's list of 13 city corporations is available as `seed-city-corporations.sql` (see Geography seed scripts); like the other geography seeds it cites no official source, so production seed-source acceptance (T065) is still not claimed.
 
 1. As Admin, create a City Corporation under an active District. Verify it appears in the Geography group, its District is displayed, no code field is required or returned, and the list can be filtered by `districtId`.
 2. Submit a City Corporation with a missing, nonexistent, or inactive District and verify a field-keyed rejection with no stored change. Rename it to a normalized duplicate in the same District and verify rejection; use the same name in a different District and verify it is allowed.
@@ -171,8 +179,8 @@ Run these checks after the City Corporation migration and resource/UI changes ar
 
 ### City Corporation Validation Results (2026-10-20)
 
-Run on Windows 11 with .NET 10 SDK, Node 24, and a local PostgreSQL 18 server. All import data was synthetic; no City Corporation seed was
-loaded, and none exists until the owner supplies an approved source and version.
+Run on Windows 11 with .NET 10 SDK, Node 24, and a local PostgreSQL 18 server. All import data was synthetic. (The owner's
+city corporation list was added later as `seed-city-corporations.sql`; see Geography seed scripts.)
 
 | Check | Result |
 |---|---|
@@ -207,7 +215,7 @@ Same runs as the table above. `dotnet ef migrations has-pending-model-changes` r
 | Area | Automated coverage |
 |---|---|
 | API (`GradeScaleTests`, SQLite host) | The ten bands stored and listed highest first with their values; marks 0, 39.99, 40, 44.99, 45, 50, 74.999, 75, 79.99, 80, and 100 each in exactly one band; search and status filters; a replacement that updates, creates, deactivates, and soft deletes with one event each; an unchanged resubmission recording nothing; 19 invalid replacements (gap, overlap, no 0%, top not inclusive, inclusive below 100, below 0, above 100, lower not below upper, numeric grade above 4, negative, three decimals, duplicate letter, blank letter, blank comment, missing grade, unknown id, repeated id, no active band, empty) each refused whole with no band or audit change; inactive overlapping bands; a deleted letter reused; unknown fields refused; single-band writes answering 405; Admin-only access with the anti-forgery token; and audit-failure rollback |
-| PostgreSQL (`GradeScalePostgresTests`, each on a fresh database) | The migration seeds the ten bands with their stable ids; the bound, inclusive-at-100, numeric-grade, and comment checks, the `numeric`/`numeric(3,2)` column types, the live-only unique letter grade, and no foreign keys; re-running the seed keeps an Admin's edit and does not restore a deleted band; two concurrent valid replacements, held together at the lock, both commit and leave a complete 0-100 partition (three rounds) |
+| PostgreSQL (`GradeScalePostgresTests`, each on a fresh database) | The migrations leave `Grades` empty and `seed-grades.sql` loads the ten bands with their fixed ids; a second run adds nothing, rows deleted in the portal still block it, and a table emptied with `DELETE` is reseeded with the same ids; the bound, inclusive-at-100, numeric-grade, and comment checks, the `numeric`/`numeric(3,2)` column types, the live-only unique letter grade, and no foreign keys; re-running the seed keeps an Admin's edit and does not restore a deleted band; two concurrent valid replacements, held together at the lock, both commit and leave a complete 0-100 partition (three rounds) |
 | Angular (`grade-scale-editor.spec.ts`, plus `configuration-home.spec.ts` and `catalog-list.spec.ts`) | Loading, empty, and load-error states with retry; the bands and the "includes 100%" note; the complete request (ids kept, new bands without one, removed bands left out, `upperBoundInclusive` set for the band ending at 100); client checks for gaps and per-band values before anything is sent; service errors shown against the scale and the band with edits kept; a failed save; discarding changes; the Grades link under IIT academics; and the generic list refusing `grades` |
 
 **Not done:** scenarios 9-11 have not been walked through by hand (T098). The migration was applied to the Development database on
@@ -221,9 +229,17 @@ local Development database (`iit_academic_portal`); `dotnet ef migrations list` 
 
 | Check | Result |
 |---|---|
-| `Grades` | 10 bands, exactly the seed: A+ 80-100 4.00, A 75-80 3.75, A- 70-75 3.50, B+ 65-70 3.25, B 60-65 3.00, B- 55-60 2.75, C+ 50-55 2.50, C 45-50 2.25, D 40-45 2.00, F 0-40 0.00 |
+| `Grades` | 10 bands from the seed then inside the migration (with its old hand-picked ids; to be replaced by deleting them and running `seed-grades.sql`): A+ 80-100 4.00, A 75-80 3.75, A- 70-75 3.50, B+ 65-70 3.25, B 60-65 3.00, B- 55-60 2.75, C+ 50-55 2.50, C 45-50 2.25, D 40-45 2.00, F 0-40 0.00 |
 | `Degrees.MinimumCgpaForCompletion` | Both existing Degrees backfilled to 2.50; the column has no default |
-| `CityCorporations` | Created, empty (no City Corporation data has been supplied) |
+| `CityCorporations` | Created empty; `seed-city-corporations.sql` was run afterwards the same day and added the 13 city corporations |
 
 No shared, staging, or Production database was changed.
+
+### Grade seed moved to a script (2026-10-21)
+
+At the owner's request the ten initial bands moved out of `CityCorporationsDegreeMinimumCgpaAndGrades` into
+`database/postgresql/seed-grades.sql`, with version 5 ids of `grade|LETTER` (the earlier ids were hand-picked and sequential). No new
+migration was added: the migration now creates the Grade table and checks only. The Development database still holds the ten rows the
+migration inserted before the change; the owner will remove them (`DELETE FROM "Grades"`) and run the script. `GradeScalePostgresTests`
+covers the script (see Grade Scale Validation Results); the full service suite passed again: 1157 tests with `AUDIT_TEST_POSTGRES`, 1 skipped.
 
