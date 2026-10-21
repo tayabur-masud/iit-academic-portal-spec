@@ -19,9 +19,9 @@
 
 ### Structured mailing and permanent addresses
 
-- **Decision**: Store mailing and permanent address details separately on StudentProfile. Each address has one free-text details value and one Upazila reference; derive its District and Division from the existing geography hierarchy.
-- **Rationale**: The existing Division → District → Upazila Configuration records provide canonical geographic identities. Storing only the selected Upazila ID avoids inconsistent parent IDs, while the existing cascading selector pattern lets the Admin choose Division, then District, then Upazila. The free-text value retains house, road, or locality details not modeled by the national hierarchy.
-- **Alternatives considered**: Free-texting all geographic names was rejected because it prevents validated cascading selection. Storing separate editable Division and District IDs was rejected because they could disagree with the selected Upazila.
+- **Decision**: Store mailing and permanent address details separately on StudentProfile. Each supplied address has one free-text details value and exactly one geographic locality reference: either an Upazila or a City Corporation. Preserve the existing Upazila columns and add separate nullable City Corporation foreign keys; enforce that both are never set together. Derive District and Division from the selected locality.
+- **Rationale**: Upazilas and City Corporations are separate Configuration catalogs but both are children of a District. The UI first selects Division and District, then loads both locality catalogs filtered to that District. Separate foreign keys preserve real relational integrity and allow restrictive deletion checks; a check constraint prevents ambiguous dual-locality addresses. Existing Upazila references need no backfill.
+- **Alternatives considered**: Free-texting geographic names or storing a bare untyped locality ID was rejected because the database could not validate the referenced catalog row. Replacing Upazila references with City Corporation references was rejected because existing address values must remain valid. Independent client-submitted District/Division references were rejected because they could contradict the selected locality.
 
 ### Degree, Batch, Hall, and registration relationships
 
@@ -37,9 +37,10 @@
 
 ### Completed-credit source and eligibility
 
-- **Decision**: Keep eligibility computed and read-only. Read the required credit total from the selected Degree and the completed-credit total through an application-level read boundary to the academic-results owner. If the source is absent or unavailable, return ineligible with the unavailable credit information identified. Do not persist a copied completed-credit total or course results in Student Management.
-- **Rationale**: The specification assigns degree requirements to Configuration and passed-course results to the academic-results owner, while explicitly defining an unavailable-source outcome. Repository inspection found no CourseResult or passed-course credit provider in the current service, so a concrete adapter cannot be selected in this phase.
-- **Alternatives considered**: A Student Management `CompletedCredits` field or duplicate course/result tables were rejected by FR-012. Treating missing source data as zero or eligible was rejected by FR-006.
+- **Decision**: Keep eligibility computed and read-only. Read the required credit total and minimum CGPA from the selected Degree, and read both passed-course completed credits and the current cumulative CGPA for that admission from published academic results. Replace the narrow `ICompletedCreditsProvider` contract with an admission-keyed `IPublishedAdmissionResultsProvider` returning those two values, or an explicit unavailable result. Student Management compares the published CGPA with the Degree minimum; the academic-results owner calculates CGPA from published course results using the configured Grade numeric values. Do not calculate or persist CGPA, copied credit totals, or course results in Student Management.
+- **Rationale**: The user's clarification assigns CGPA calculation to published course results and confirms that the Degree's minimum is compared to the current cumulative CGPA for the same admission. Configuration owns the required credit and minimum-CGPA settings; academic results owns the published result and Grade numeric-value calculation. The provider boundary keeps this ownership separation while letting missing data remain explicitly unavailable.
+- **Unavailable-source behavior**: Until the academic-results owner supplies and binds its read-only source, the registered provider returns unavailable for credits and CGPA. The eligibility response identifies each unavailable academic requirement and never returns eligible. Re-evaluating after another semester result is published reads the then-current cumulative CGPA; no copied CGPA becomes stale in Student Management.
+- **Alternatives considered**: Calculating CGPA from marks or course-grade rows in Student Management was rejected because the academic-results owner publishes the result and owns configured Grade numeric-value use. A Student Management `CompletedCredits` or `Cgpa` field, duplicate result tables, a last-semester-only CGPA, or cross-admission values were rejected by the clarified ownership and current-cumulative rule. Treating missing data as zero or eligible was rejected by FR-006.
 
 ### Returning Student and previous programs
 
@@ -65,4 +66,4 @@
 
 ## Open Integration Dependency
 
-The academic-results owner must expose a read-only source for the completed-credit total keyed to the Student admission identifier. Until that source is available and bound, eligibility must report the credit source as unavailable and remain ineligible. This does not authorize storing a manually maintained total in the Student record.
+The academic-results owner must expose a read-only published-results source keyed to the Student admission identifier, returning passed-course completed credits and the current cumulative CGPA. Until that source is available and bound, eligibility must report the corresponding academic requirement(s) as unavailable and remain ineligible. This does not authorize Student Management to calculate or store either value.
