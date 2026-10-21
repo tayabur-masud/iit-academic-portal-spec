@@ -88,7 +88,7 @@
 - [X] T019 [US3] Implement `GraduationEligibilityService` in `iit-academic-portal-service/src/IitAcademicPortal.Application/Students/GraduationEligibilityService.cs` to read the Degree for the selected admission, obtain completed credits for that admission from `ICompletedCreditsProvider`, require that admission's Hall and registration number, and return its eligibility plus unmet/unavailable requirements without modifying results or counting credits from another admission.
 - [X] T020 [US3] Add the eligibility response DTO and `GET /api/admin/students/{admissionId}/graduation-eligibility` action in `iit-academic-portal-service/src/IitAcademicPortal.Api/Contracts/StudentManagementContracts.cs` and `iit-academic-portal-service/src/IitAcademicPortal.Api/Controllers/Students/StudentsController.cs`; protect the route with `AdminModule` and return an explicit unavailable-credit reason when the provider has no data.
 - [X] T021 [US3] Display computed eligibility, completed/required credits when available, and each missing or unavailable requirement in `iit-academic-portal/src/app/features/students/graduation-eligibility.ts` and `graduation-eligibility.html`; do not add a clearance action or block final-result publication.
-- [ ] T022 [US3] When the academic-results owner publishes the passed-course credit contract, implement and register its read-only adapter for `ICompletedCreditsProvider` in `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/AcademicResults/CompletedCreditsProvider.cs` and `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/DependencyInjection.cs`, then add an integration test for the eligible threshold case in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Students/GraduationEligibilityTests.cs`; until then keep the unavailable provider behavior. **Status (blocked):** no academic-results owner exists. `UnavailableCompletedCreditsProvider` is registered, and the threshold logic is covered against a fake provider in `GraduationEligibilityTests`.
+- [ ] T022 [US3] When the academic-results owner publishes its admission-keyed read-only contract for passed-course completed credits and current cumulative CGPA from published results, implement and register the `IPublishedAdmissionResultsProvider` adapter in `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/AcademicResults/PublishedAdmissionResultsProvider.cs` and `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/DependencyInjection.cs`; add PostgreSQL/API integration coverage for the eligible credit and CGPA thresholds in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Students/GraduationEligibilityTests.cs`; until then keep both values independently unavailable. **Status (blocked):** the academic-results owner has not published this contract. The unavailable fallback remains registered and local threshold behavior is tested with a fake provider.
 
 **Checkpoint**: Eligibility is correct for available provider data and safely ineligible when completed credits are unavailable; no student-owned result or credit copy is created.
 
@@ -161,3 +161,96 @@ Every task starts with `- [ ]`, has one sequential ID, includes `[US#]` exactly 
 ## Phase 8: Convergence
 
 - [X] T028 [US1] Reconcile the checked StudentAcademicHistory work in T002/T003/T005/T007/T008 and supporting notes in `specs/007-student-management/research.md` and `specs/007-student-management/checklists/requirements.md` with revised FR-003: the six categories are fixed; listed school/college, university, institution, board, and group values use catalog IDs plus immutable name snapshots; unlisted values use typed text snapshots; all other applicable history fields remain optional text snapshots. Treat the revised spec, data model, API contract, and `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Students/StudentAcademicHistoryCatalogTests.cs` as authoritative and document that the earlier text-only/no-catalog wording is superseded (contradicts).
+
+---
+
+## Phase 9: Student Address Locality Addendum - User Story 1 (Priority: P1)
+
+**Goal**: Let Admins use either an Upazila or City Corporation as the locality for each mailing/permanent address, with both choices constrained to the selected District and existing Upazila references preserved.
+
+**Independent Test**: Create and update profiles using both locality types. Verify each address contains one locality under its submitted District, the API returns the locality and derived District/Division, invalid or conflicting locality submissions write nothing, existing Upazila references survive migration, and a referenced City Corporation cannot be deleted.
+
+### Tests for User Story 1 Address Addendum
+
+- [X] T029 [P] [US1] Add API tests for mailing and permanent addresses using either locality, required `districtId`, rejection when both or neither locality IDs are supplied, cross-District/missing/deleted locality rejection, unchanged inactive locality behavior, and no partial profile updates in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Students/StudentAdmissionTests.cs`.
+- [X] T030 [P] [US1] Add PostgreSQL tests for the Student address locality migration, both restrictive City Corporation foreign keys, at-most-one-locality check constraints, preservation of existing Upazila IDs, and a City Corporation referenced by a Student profile blocking Configuration deletion in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Students/StudentPostgresTests.cs` and `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/ConfigurationDeleteIntegrityTests.cs`.
+- [X] T031 [P] [US1] Add Angular tests proving both Upazilas and City Corporations load only for the selected District, switching Division/District clears the previous locality, either locality type serializes with `districtId`, and mixed/missing locality validation is shown in `iit-academic-portal/src/app/features/students/student-form.spec.ts`.
+
+### Implementation for User Story 1 Address Addendum
+
+- [X] T032 [US1] Add `MailingCityCorporationId` and `PermanentCityCorporationId` to `StudentProfile` in `iit-academic-portal-service/src/IitAcademicPortal.Domain/Students/StudentProfile.cs`; preserve the existing Upazila IDs and enforce these model rules verbatim: “exactly one locality reference is required when MailingAddressDetails is supplied” and “exactly one locality reference is required when PermanentAddressDetails is supplied”; neither address may store both locality types.
+- [X] T033 [US1] Map the City Corporation address foreign keys in `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/Persistence/PortalDbContext.cs` and add a versioned migration under `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/Persistence/Migrations/` with nullable `MailingCityCorporationId`/`PermanentCityCorporationId`, restrictive foreign keys, indexes, and checks preventing both locality IDs being set together; update `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/Persistence/ConfigurationStore.cs` so a live City Corporation referenced by either address blocks soft deletion, and cover the delete conflict in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Configuration/ConfigurationDeleteIntegrityTests.cs`.
+- [X] T034 [US1] Update address validation and lookups in `iit-academic-portal-service/src/IitAcademicPortal.Application/Students/StudentAdmissionService.cs`, `iit-academic-portal-service/src/IitAcademicPortal.Application/Abstractions/IStudentStore.cs`, and `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/Persistence/StudentStore.cs` to require address details, a `districtId` validation context, and exactly one of `upazilaId` or `cityCorporationId`; verify the selected locality belongs to the District, require a newly selected locality to be active while preserving an unchanged inactive reference, derive Division, and persist only the selected locality ID.
+- [X] T035 [US1] Update address request/response mapping in `iit-academic-portal-service/src/IitAcademicPortal.Api/Contracts/StudentManagementContracts.cs` and `iit-academic-portal-service/src/IitAcademicPortal.Api/Controllers/Students/StudentsController.cs` to accept `districtId` plus exactly one locality ID and return the selected locality type/ID/name with resolved District/Division; return field-keyed 400 errors for missing District, missing/both locality IDs, nonexistent/deleted localities, and District mismatch.
+- [X] T036 [US1] Update address models and cascading forms in `iit-academic-portal/src/app/features/students/student.models.ts`, `iit-academic-portal/src/app/features/students/student-api.ts`, `iit-academic-portal/src/app/features/students/student-form.ts`, and `iit-academic-portal/src/app/features/students/student-form.html` to load both Configuration locality catalogs under the selected District, offer exactly one locality per address, reset it when the District changes, submit `districtId` as validation context, and display the returned locality with its derived District and Division.
+
+**Checkpoint**: Both address-locality types work without breaking existing Upazila records, and District/locality integrity is enforced by the API and database.
+
+---
+
+## Phase 10: Published CGPA Eligibility Addendum - User Story 3 (Priority: P1)
+
+**Goal**: Require the selected Degree's minimum CGPA for graduation eligibility, comparing it with the current cumulative CGPA for that admission from published course results using configured Grade numeric values; Student Management remains read-only for results.
+
+**Dependencies**: Existing US1/US2 admission and identifier records. Positive result-source integration remains blocked on the academic-results owner publishing its contract (T022/T026); tests and unavailable-source behavior are independently implementable.
+
+**Independent Test**: With a fake admission-keyed published-results provider, evaluate current cumulative CGPA below, equal to, and above the Degree minimum; verify below is ineligible, equality/above meets the CGPA condition, unavailable Degree/result data is identified and never eligible, another admission's CGPA is not reused, and a newly published result changes the next eligibility read without persisting CGPA in Student Management.
+
+### Tests for User Story 3 CGPA Addendum
+
+- [X] T037 [P] [US3] Add API/service tests for minimum CGPA below/equal/above thresholds, missing Degree minimum, completed credits available while CGPA is unavailable (and vice versa), current cumulative CGPA keyed to the requested admission, result updates affecting the next evaluation, no cross-admission CGPA transfer, and the unchanged unavailable-provider behavior in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Students/GraduationEligibilityTests.cs`.
+- [X] T038 [P] [US3] Add Angular eligibility tests for the minimum-CGPA requirement, displayed current cumulative CGPA and Degree minimum, below/equal/above threshold states, independent unavailable-credit/CGPA messages, and refresh after an admission update in `iit-academic-portal/src/app/features/students/graduation-eligibility.spec.ts`.
+
+### Implementation for User Story 3 CGPA Addendum
+
+- [X] T039 [US3] Replace `iit-academic-portal-service/src/IitAcademicPortal.Application/Students/ICompletedCreditsProvider.cs` with `IPublishedAdmissionResultsProvider.cs` in the same folder (the interface name T022 uses): an admission-keyed published-results contract returning completed passed-course credits and current cumulative CGPA independently, with a separate unavailable reason for each value; register an unavailable implementation until the owner adapter in T022 is ready, and do not calculate or persist either result value in Student Management.
+- [X] T040 [US3] Extend the Degree reference projection in `iit-academic-portal-service/src/IitAcademicPortal.Application/Abstractions/IStudentStore.cs` and `iit-academic-portal-service/src/IitAcademicPortal.Infrastructure/Persistence/StudentStore.cs` to return the selected Degree's configured `MinimumCgpaForCompletion` alongside its required credits; do not copy either Degree setting onto StudentProfile or StudentAdmissionRecord.
+- [X] T041 [US3] Update `iit-academic-portal-service/src/IitAcademicPortal.Application/Students/GraduationEligibilityService.cs` and `iit-academic-portal-service/src/IitAcademicPortal.Application/Students/StudentModels.cs` to add a `MinimumCgpa` requirement, compare the selected Degree minimum with that admission's current cumulative published CGPA, identify missing values as `Unavailable`, and set `Eligible` only when credits, CGPA, Hall, and registration number all meet their requirements.
+- [X] T042 [US3] Update `GraduationEligibilityResponse` in `iit-academic-portal-service/src/IitAcademicPortal.Api/Contracts/StudentManagementContracts.cs` and `iit-academic-portal-service/src/IitAcademicPortal.Api/Controllers/Students/StudentsController.cs` to return `minimumCgpa` and `currentCumulativeCgpa` when available and a `MinimumCgpa` requirement status/message; omit unavailable numeric values and never return a computed or persisted Student-owned CGPA.
+- [X] T043 [US3] Update `GraduationEligibility` types and the eligibility panel in `iit-academic-portal/src/app/features/students/student.models.ts`, `iit-academic-portal/src/app/features/students/graduation-eligibility.ts`, and `iit-academic-portal/src/app/features/students/graduation-eligibility.html` to show the Degree minimum, current cumulative CGPA, and distinct unmet/unavailable requirements without adding course-result entry or calculation controls.
+
+**Checkpoint**: Eligibility compares published, current cumulative CGPA for the same admission with the selected Degree minimum; no result values are calculated or stored by Student Management.
+
+---
+
+## Phase 11: Addendum Validation & Cross-Cutting Concerns
+
+**Purpose**: Verify migration, address, result-read, and existing Student Management behavior together.
+
+- [X] T044 Run focused Student API/PostgreSQL tests, the full service test suite, `npm test -- --watch=false`, and `npm run build`; record the actual migration/provider configuration and results in `specs/007-student-management/quickstart.md` without claiming unavailable external-provider checks passed. Recorded in quickstart.md, Addendum Validation Results (2026-10-21).
+- [ ] T045 Walk through quickstart address and eligibility scenarios with an active Admin on a disposable PostgreSQL database; verify both locality types and District filtering, migration preservation of existing Upazila references, below/equal/above minimum CGPA from published results, unavailable-source behavior, and re-evaluation after result publication; record outcomes in `specs/007-student-management/quickstart.md`. **Status:** not run; the published-result scenarios also need the academic-results owner (T022).
+
+## Addendum Dependencies & Execution Order
+
+- **US1 address addendum (T029–T036)** depends on the existing Configuration Upazila/City Corporation catalogs and the implemented Student profile/address flow. T029–T031 target separate test files and can be authored in parallel. T032 precedes T033; T034/T035 depend on the locality lookup shape; T036 follows the request/response shape. T030 also validates the Configuration deletion dependency.
+- **US3 CGPA addendum (T037–T043)** depends on existing selected-Degree and admission identifier reads. T037 and T038 can be authored in parallel. T039/T040 establish provider and Degree reference shapes before T041; T042 follows the service response; T043 follows the response contract. Actual owner integration remains T022/T026-blocked, while fallback behavior is testable with fakes.
+- **Validation (T044–T045)** follows both addenda. PostgreSQL migration tests do not require the academic-results owner; positive end-to-end result-source tests require T022's external contract.
+
+## Parallel Example: Student Addenda
+
+```text
+Before implementation:
+- Worker A: T029 Student address API tests in StudentAdmissionTests.cs
+- Worker B: T030 PostgreSQL address migration and dependent-delete tests
+- Worker C: T031 Angular locality-selection tests in student-form.spec.ts
+- Worker D: T037 eligibility service/API tests in GraduationEligibilityTests.cs
+- Worker E: T038 Angular CGPA panel tests in graduation-eligibility.spec.ts
+
+After test contracts stabilize:
+- Address worker: T032–T036 in dependency order
+- Eligibility worker: T039–T043 in dependency order
+```
+
+## Addendum Implementation Strategy
+
+1. Deliver the US1 address locality addendum independently, preserving current Upazila data and verifying the City Corporation migration on PostgreSQL.
+2. Deliver US3 threshold and unavailable-source handling using a fake provider; do not block that work on the academic-results owner.
+3. Complete T022/T026 only after the owner publishes the admission-keyed results contract, then run the positive integration and manual published-result refresh scenario.
+
+## Addendum Format Validation
+
+New task lines continue sequential IDs T029–T045, use `[US1]` or `[US3]` only in story phases, use `[P]` only for independent tests, and include explicit repository paths. Existing task IDs and completion states are preserved; T022 now describes both published-results values, while T026 remains open for its existing results-owner contract prerequisite.
+
+## Phase 12: Convergence
+
+- [ ] T046 When the academic-results owner publishes its contract, extend the existing T026 follow-up and record the owner-provided current cumulative CGPA alongside passed-course credits in `specs/007-student-management/research.md`, `specs/007-student-management/contracts/student-management-api.md`, and `specs/007-student-management/quickstart.md`; verify the published admission CGPA is compared to the Degree minimum without Student Management calculation or persistence per FR-006 and FR-012 (partial).

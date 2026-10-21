@@ -1,6 +1,6 @@
 # Student Management API Contract
 
-**Status**: Implemented contract for [spec.md](../spec.md). See [Implemented details](#implemented-details).
+**Status**: Implemented, including the CGPA eligibility and City Corporation address addendum (2026-10-21). See [Implemented details](#implemented-details).
 
 ## Security and Common Behavior
 
@@ -26,16 +26,16 @@ No delete route is defined by this feature.
 - Required on admission submission: applicant email, applicant mobile, Degree identifier, Batch identifier, and the source-form fields required by the specification. Email is canonical on `PortalUser`; mobile and shared personal/contact fields belong to StudentProfile.
 - Optional at initial admission: assigned Hall, registration number, class roll, guardian data, and source-form values not supplied.
 - Academic history: zero or more StudentProfile-level entries shared across admissions. `category` is one of SSC/O-Level, HSC/A-Level, Bachelor/Graduation, Master, PGDIT, or Other. `schoolOrCollegeId`, `universityId`, `institutionId`, `boardId`, and `groupId` optionally name a Configuration record; when one is sent, the service stores it and keeps the record's name as the snapshot in `schoolOrCollege`, `university`, `institution`, `board`, or `group` (a row that keeps the same record keeps its saved snapshot). Without an ID the typed name is kept as entered. The other fields (`examination`, department, subject, year, marks, percentage, CGPA, class, division) are optional strings preserved as entered.
-- Mailing and permanent addresses are separate profile-level objects. Each request object contains `details` (one free-text address-details value) and `upazilaId`. Each response object also includes the resolved Upazila, District, and Division identifiers/names from Configuration. When an address is supplied, both details and Upazila are required; clients do not submit separate District/Division IDs.
+- Mailing and permanent addresses are separate profile-level objects. Each request object contains `details` (one free-text address-details value), `districtId` as validation context, exactly one of `upazilaId` or `cityCorporationId`, and the optional address `cellNumber`. The Admin selects Division and District in the UI; both locality catalogs are loaded filtered by District. The server verifies the selected locality belongs to `districtId`, derives Division, and persists only the locality reference; clients do not submit Division IDs. Each response includes the selected locality ID/name and its resolved District and Division IDs/names. If an address is supplied, details, District, and one locality are required; supplying both locality IDs or neither is rejected.
 - If normalized email identifies an existing Student account/profile, reuse it without changing credentials/status or requesting setup again. If it belongs to a non-Student account, reject with 409 and do not merge accounts. A Student account with no profile may receive a profile in the admission transaction.
 - Degree and Batch must be active and the Batch must belong to the selected Degree. A newly assigned Hall must identify an active Hall.
-- Each supplied address Upazila must exist in the configured geographic hierarchy and resolve to its District and Division; the server returns field-keyed errors for missing or unavailable Upazilas.
+- Each supplied address locality must exist in Configuration and belong to the submitted `districtId`. A newly selected Upazila or City Corporation must be active; an unchanged existing locality may remain referenced if later deactivated. The server returns field-keyed errors for missing, unavailable, conflicting, or cross-District locality references.
 - A profile may have only one admission for the same Degree and Batch. Registration number is unique across all program admissions when present.
 - Each previously recorded IIT program appears as its own admission and is not duplicated as academic history. Unrecorded prior education is entered once on StudentProfile and appears across admissions. No credits transfer across admissions unless separately approved.
 
 ## Graduation Eligibility Response
 
-The response identifies whether the student is eligible for the requested admission and the unmet requirements. It includes that admission's Degree required-credit total and completed-credit total only when the passed-course results provider supplies it. Missing provider data is explicitly identified and never interpreted as eligibility. Credits from another admission are not carried over. The concrete result-provider transport is outside this API contract; the Application layer consumes a read-only provider boundary keyed by admission ID.
+The response identifies whether the student is eligible for the requested admission and each unmet or unavailable requirement. It includes that admission's Degree required-credit total, minimum CGPA, passed-course completed credits, and current cumulative CGPA when their respective sources supply them. The current cumulative CGPA is calculated by the academic-results owner from published course results using configured Grade numeric values; Student Management consumes but does not calculate or persist it. Missing provider data is explicitly identified and never interpreted as eligibility. Credits and CGPA from another admission are not carried over. The concrete result-provider transport is outside this API contract; the Application layer consumes a read-only provider boundary keyed by admission ID.
 
 ## Error Behavior
 
@@ -43,6 +43,7 @@ The response identifies whether the student is eligible for the requested admiss
 - `401` / `403`: anonymous or non-Admin access.
 - `404`: the requested student admission does not exist.
 - `400`: a submitted Degree, Batch, or Hall identifier is missing, inactive, nonexistent, or inconsistent with its required relationship; errors are keyed to the corresponding field.
+- `400`: a supplied address lacks `districtId`, has neither or both `upazilaId` and `cityCorporationId`, or the selected locality does not exist or does not belong to `districtId`; errors are keyed to `districtId` or the locality field.
 - `409`: email belongs to a non-Student account, duplicate Student/Degree/Batch admission, duplicate registration number, or a concurrent uniqueness conflict.
 
 ## Implemented details
@@ -53,7 +54,7 @@ The response identifies whether the student is eligible for the requested admiss
 - **Create response.** `201` with `admission`, `accountCreated`, `profileCreated`, and `setupEmailRequested` (true only when a new account
   was created and its setup email was durably requested). Never a link or proof.
 - **Admission response.** `id`, `profile` (`id`, `userId`, `email`, `accountStatus`, personal fields, `mailingAddress` and
-  `permanentAddress` with `details`, `cellNumber`, `upazilaId`/`upazilaName`, `districtId`/`districtName`, `divisionId`/`divisionName`,
+  `permanentAddress` with `details`, `cellNumber`, `upazilaId`/`upazilaName` or `cityCorporationId`/`cityCorporationName`, `districtId`/`districtName`, `divisionId`/`divisionName`,
   guardian fields, `academicHistory`, `admissions`), `otherAdmissions`, `degreeId`/`degreeName`, `batchId`/`batchName`,
   `admissionSerialNumber`, `admissionExamRoll`, `classRoll`, `assignedHallId`/`assignedHallName`, `registrationNumber`, and the admission's
   created/last-modified facts. Absent optional values are omitted.
@@ -61,15 +62,33 @@ The response identifies whether the student is eligible for the requested admiss
   is the complete list (entries with `id` are kept, others added, missing ones removed); `category` is `SscOLevel`, `HscALevel`,
   `BachelorGraduation`, `Master`, `Pgdit`, or `Other`. Unknown members (for example a photo, attachment, signature, or password) are a 400.
 - **Required fields.** `email` (create), `applicantName`, `applicantMobile`, `degreeId`, `batchId`, `admissionSerialNumber`, and
-  `admissionExamRoll`. Each supplied address needs `details` and `upazilaId`.
-- **Error keys.** Field-keyed 400s use the camelCase path, for example `mailingAddress.upazilaId` or `academicHistory[2].category`.
+  `admissionExamRoll`. Each supplied address needs `details`, `districtId`, and exactly one of `upazilaId` or `cityCorporationId`.
+- **Error keys.** Field-keyed 400s use the camelCase path, for example `mailingAddress.districtId`, `mailingAddress.upazilaId`, `permanentAddress.cityCorporationId`, or `academicHistory[2].category`.
   A non-Student email, a duplicate Student/Degree/Batch admission, and a duplicate registration number (compared case- and
   space-insensitively, across every admission) are 409 with a `detail` message.
 - **Directory.** `search` (applicant name, email, mobile, exam roll, class roll, or registration number), `degreeId`, `batchId`, `page`,
   `pageSize` (1-100, default 25); ordered by applicant name then admission ID; response `items` (each with `admissionExamRoll` and, when
   recorded, `classRoll`), `page`, `totalCount`, `totalPages`.
-- **Eligibility.** `admissionId`, `eligible`, `requiredCredits` and `completedCredits` (omitted when unavailable), and `requirements`:
-  `Credits`, `AssignedHall`, `RegistrationNumber`, each `Met`, `NotMet`, or `Unavailable` with a message.
+- **Eligibility.** `admissionId`, `eligible`, `requiredCredits`, `completedCredits`, `minimumCgpa`, and `currentCumulativeCgpa` (each omitted when unavailable), plus `requirements`: `Credits`, `MinimumCgpa`, `AssignedHall`, and `RegistrationNumber`, each `Met`, `NotMet`, or `Unavailable` with a message. `currentCumulativeCgpa` is admission-specific and comes from published academic results; the response never calculates it.
 - **Catalog choices in history.** `schoolOrCollegeId` must be a School or College, `universityId` a University, and `institutionId` any institution; a newly chosen record (including a board or group) must exist and be active, otherwise a field-keyed 400 such as `academicHistory[0].universityId`. Responses return each ID with its name snapshot.
-- **Configuration.** Deleting a Degree, Batch, Hall, Upazila, educational institution, education board, or education group used by a student is a 409 ("Deactivate it instead").
+- **Configuration.** Deleting a Degree, Batch, Hall, Upazila, City Corporation, educational institution, education board, or education group used by a student is a 409 ("Deactivate it instead").
+
+### Addendum details as implemented (2026-10-21)
+
+- **Address request.** `details`, `districtId`, exactly one of `upazilaId` or `cityCorporationId`, and optional `cellNumber`; `divisionId`
+  or any other field is a 400. An address with every field empty is no address.
+- **Address errors.** `{address}.details` "Enter the address details (house, road, area)."; `{address}.districtId` "Select the division
+  and district."; `{address}.upazilaId` "Select an upazila or a city corporation." when neither is given; `{address}.cityCorporationId`
+  "Select either an upazila or a city corporation, not both." when both are; and on the chosen locality's field "The selected upazila
+  (city corporation) does not exist." (also for a deleted one), "... is not in the selected district.", or "Select an active upazila
+  (city corporation)." A locality the address already has may stay after it is deactivated. A refused request changes nothing.
+- **Address response.** `upazilaId`/`upazilaName` and `cityCorporationId`/`cityCorporationName` are both present; the one not used is
+  `null`. `districtId`/`districtName` and `divisionId`/`divisionName` come from the locality.
+- **Eligibility response.** Requirements are listed in the order `Credits`, `MinimumCgpa`, `AssignedHall`, `RegistrationNumber`. The
+  `MinimumCgpa` message is "Current cumulative CGPA 2.49 is below the minimum 2.50." (NotMet), "... meets the minimum 2.50." (Met), the
+  provider's reason (Unavailable), or "The selected degree has no minimum CGPA for completion available." `minimumCgpa` is present
+  whenever the Degree has one, even when the CGPA is unavailable.
+- **Results boundary.** `IPublishedAdmissionResultsProvider.GetAsync(admissionId)` returns `PublishedAdmissionResults`
+  (`CompletedCredits`, `CreditsUnavailableReason`, `CurrentCumulativeCgpa`, `CgpaUnavailableReason`). The registered
+  `UnavailablePublishedAdmissionResultsProvider` reports both values unavailable, so nobody is eligible until T022.
 

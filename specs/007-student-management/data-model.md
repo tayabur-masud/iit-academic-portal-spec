@@ -1,7 +1,7 @@
 # Data Model: Student Management
 
 **Feature**: [Student Management](spec.md)  
-**Status**: Implemented by the `StudentManagement` migration. See [implementation-notes.md](implementation-notes.md) for the required-field, registration-number, and history-ordering decisions.
+**Status**: Implemented by the `StudentManagement` migration and, for City Corporation address references, the `StudentAddressCityCorporations` migration (adds `MailingCityCorporationId` and `PermanentCityCorporationId`, their indexes and restrictive keys, and the checks `CK_StudentProfiles_MailingLocality_AtMostOne` and `CK_StudentProfiles_PermanentLocality_AtMostOne`). Published CGPA remains a read-only computed input, not a Student Management column.
 
 ## StudentProfile
 
@@ -14,15 +14,17 @@ The person-level Student record. It is linked one-to-one to a Student portal acc
 | ApplicantMobile | String | Yes | Shared required contact number; not verified by this feature. |
 | Personal and contact fields | Typed values | Per source form | Applicant/family names, birth and nationality data, and optional guardian/emergency contacts. |
 | MailingAddressDetails | String | No | One free-text house/road/locality detail value; required when a mailing address is supplied. |
-| MailingUpazilaId | UUID | No | References an existing Upazila; required with MailingAddressDetails. District and Division are resolved from the selected Upazila. |
+| MailingUpazilaId | UUID | No | References an existing Upazila. Mutually exclusive with MailingCityCorporationId; exactly one locality reference is required when MailingAddressDetails is supplied. |
+| MailingCityCorporationId | UUID | No | Restrictive reference to an existing City Corporation. Mutually exclusive with MailingUpazilaId; District and Division are resolved from the selected locality. |
 | PermanentAddressDetails | String | No | One free-text house/road/locality detail value; required when a permanent address is supplied. |
-| PermanentUpazilaId | UUID | No | References an existing Upazila; required with PermanentAddressDetails. District and Division are resolved from the selected Upazila. |
+| PermanentUpazilaId | UUID | No | References an existing Upazila. Mutually exclusive with PermanentCityCorporationId; exactly one locality reference is required when PermanentAddressDetails is supplied. |
+| PermanentCityCorporationId | UUID | No | Restrictive reference to an existing City Corporation. Mutually exclusive with PermanentUpazilaId; District and Division are resolved from the selected locality. |
 | Address cell numbers | Strings | No | Mailing and permanent address cell numbers remain separate and are retained when present on the form. |
 | Audit fields | Existing audited-entity fields | Yes | Server-generated created/modified actor and UTC timestamps. |
 
 The linked `PortalUser` remains the canonical source for applicant email, login name, Student role, and credential-setup status. Email uniqueness is enforced across all portal accounts. Student Management does not copy email into a second writable profile field.
 
-For each supplied address, both its details and Upazila are required. The API/UI displays the selected Upazila together with its parent District and Division from the existing Configuration hierarchy; clients do not submit independent parent IDs that could contradict the Upazila.
+For each supplied address, details, `districtId`, and exactly one locality (Upazila or City Corporation) are required. The Admin selects Division and District, and both locality catalogs load filtered to that District. `districtId` is request validation context only: the service verifies that the chosen locality belongs to it, but StudentProfile stores only the locality foreign key and derives District and Division from Configuration. The API does not accept a Division ID. Keep existing Upazila reference columns and values; a new migration adds nullable City Corporation columns, restrictive foreign keys, indexes, and at-most-one-locality check constraints. The application validates that an address with details has one locality and that an address without details has no locality.
 
 ## StudentAdmissionRecord
 
@@ -30,7 +32,7 @@ One program enrollment for a Student profile. A profile may have separate admiss
 
 | Field | Type | Required | Rules |
 |---|---|---:|---|
-| Id | UUID | Yes | Stable identifier and key for passed-course credit lookup for this specific program admission. |
+| Id | UUID | Yes | Stable identifier and key for published academic-results lookup for this specific program admission. |
 | StudentProfileId | UUID | Yes | Foreign key to a StudentProfile; multiple admissions may reference the same profile. |
 | DegreeId | UUID | Yes | References an existing Degree. |
 | BatchId | UUID | Yes | References an existing Batch whose DegreeId matches DegreeId. |
@@ -79,10 +81,12 @@ Computed read model; not persisted as a student-owned balance or status snapshot
 | Value | Source | Rules |
 |---|---|---|
 | RequiredCredits | Selected Degree | Read the configured positive credit total. |
-| CompletedCredits | Passed-course results provider | Read-only integration boundary keyed to StudentAdmissionRecord; no duplicate profile field, admission total, or result data. Credits from another admission do not carry over without a separately approved transfer rule. |
+| MinimumCgpa | Selected Degree | Read the configured minimum CGPA, greater than 0 and at most 4.00. |
+| CompletedCredits | Published results provider | Read passed-course credits through an admission-keyed, read-only boundary; do not persist a copy. Credits from another admission do not carry over without an approved transfer rule. |
+| CurrentCumulativeCgpa | Published results provider | Read the current cumulative CGPA for this admission, on the configured 4.00 Grade numeric scale; it is recalculated by the academic-results owner as results publish and is not stored or calculated in Student Management. |
 | AssignedHallPresent | StudentAdmissionRecord.AssignedHallId | Required for this admission's eligibility. |
 | RegistrationNumberPresent | StudentAdmissionRecord.RegistrationNumber | Required for this admission's eligibility. |
-| Eligibility and unmet requirements | Derived | Eligible only when all three conditions are met; missing credit data never yields eligibility and is identified in the response. |
+| Eligibility and unmet requirements | Derived | Eligible only when credits meet RequiredCredits, CurrentCumulativeCgpa meets MinimumCgpa, and Hall and registration number are present. Missing academic data is unavailable and never yields eligibility. |
 
 ## Relationships and Integrity
 
@@ -90,7 +94,8 @@ Computed read model; not persisted as a student-owned balance or status snapshot
 - One `StudentProfile` has zero or more `StudentAdmissionRecord` entries. Each admission references one Degree and one Batch; the Batch must belong to the selected Degree.
 - A profile may have at most one admission for the same Degree and Batch; a different Degree or Batch is represented by a separate admission.
 - An admission may reference one Hall after it is assigned. Hall and registration number may be updated independently.
+- Each supplied mailing or permanent address references exactly one Upazila or City Corporation. Both are District children; parent names are derived, and neither locality can be deleted while referenced.
 - One StudentProfile has zero or more academic-history entries shared across its admissions; existing IIT program admissions are not duplicated as history entries.
 - Registration number is unique across admissions when set. Applicant email is unique across all `PortalUser` accounts. A normalized email matching a Student account reuses its profile; a non-Student account is never merged.
 - Initial Student account, profile, first admission, and their audit events commit atomically. Additional admissions and profile updates commit together; setup email is requested only when a new account is created.
-- Student Management stores no attachments, password/setup proof, course registration, course result, or duplicate completed-credit total.
+- Student Management stores no attachments, password/setup proof, course registration, course result, completed-credit total, or CGPA. Published results remain the sole source for admission-specific credits and current cumulative CGPA.

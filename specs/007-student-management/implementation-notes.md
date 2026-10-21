@@ -50,16 +50,22 @@ account also records `account.created`.
 
 ## Eligibility
 
-`GraduationEligibilityService` reads the Degree's `CreditsToBeCompleted`, the admission's credits from `ICompletedCreditsProvider` (keyed by
-admission ID), and the admission's Hall and registration number. Each requirement is reported as Met, NotMet, or Unavailable; eligible
-only when all are Met. Nothing is stored. The registered provider is `UnavailableCompletedCreditsProvider`, because no academic-results
-owner exists yet, so nobody is eligible in the running portal until that owner registers its adapter (task T022).
+`GraduationEligibilityService` reads the Degree's `CreditsToBeCompleted` and `MinimumCgpaForCompletion`, the admission's completed credits
+and current cumulative CGPA from `IPublishedAdmissionResultsProvider` (keyed by admission ID; it replaced `ICompletedCreditsProvider` in the
+2026-10-21 addendum), and the admission's Hall and registration number. Each of the four requirements (Credits, MinimumCgpa, AssignedHall,
+RegistrationNumber) is reported as Met, NotMet, or Unavailable; eligible only when all are Met. The credits and the CGPA are independent:
+either may be available without the other, each with its own reason. Nothing is stored or calculated here. The registered provider is
+`UnavailablePublishedAdmissionResultsProvider`, because no academic-results owner exists yet, so nobody is eligible in the running portal
+until that owner registers its adapter (tasks T022, T026).
 
 ## Frontend
 
 - `/admin/students` (directory, one row per admission), `/admin/students/new`, and `/admin/students/:admissionId` (the same form, plus the
   account panel, other programs, eligibility, and record history). All lazy-loaded; the initial bundle is 483.07 kB of 500 kB.
-- Addresses use cascading Division, District, and Upazila selects backed by the Configuration API; only the Upazila and details are sent.
+- Addresses use cascading Division and District selects and one "Upazila or city corporation" select backed by the Configuration API.
+  It lists the District's Upazilas and City Corporations in two option groups, so an address can only choose one; its values are
+  `upazila:<id>` or `city:<id>`. The request sends the details, `districtId`, and the one locality id. The eligibility panel adds a CGPA
+  line (current cumulative against the Degree minimum) and the Minimum CGPA requirement.
 - History rows show the fields that apply to their category; values in other fields are kept, not shown.
 
 ## Other fixes made while implementing
@@ -76,3 +82,21 @@ owner exists yet, so nobody is eligible in the running portal until that owner r
 - **T022** (positive completed-credit integration): blocked on the academic-results owner.
 - **T025** (timed usability study with representative Admins): not run.
 - The migration was applied to the Development database on request (with the pending `DegreeCredits` migration); no shared or Production database was changed.
+
+## Addendum: City Corporation addresses and minimum CGPA (2026-10-21)
+
+- **Model.** `StudentProfile` gained `MailingCityCorporationId` and `PermanentCityCorporationId`. `SetMailingAddress` and
+  `SetPermanentAddress` enforce that exactly one locality reference is required when address details are supplied and that an address never
+  stores both; the database repeats the second rule with two check constraints. Existing Upazila columns and values are unchanged.
+- **Validation.** `districtId` is required with a supplied address but never stored: it is checked against the locality's District. A
+  newly chosen locality must be active; the one an address already has may stay after deactivation (the same rule as before for Upazilas).
+- **Reading.** The District and Division of an address now come from either locality. The path is read with the query filters lifted for
+  the locality, District, and Division, so an address keeps its path even if one of them were deleted (deleting one in use is refused).
+- **Configuration.** A City Corporation used by any student address cannot be deleted (409 "Deactivate it instead"), through
+  `ConfigurationStore.UsedByStudentsAsync<CityCorporation>` and a new `CityCorporationResource.HasDependentsAsync`.
+- **Results boundary.** T039 named the file `ICompletedCreditsProvider.cs`; it was replaced by `IPublishedAdmissionResultsProvider.cs`, the
+  interface name T022 already used, rather than renamed in place.
+- **Migration.** `StudentAddressCityCorporations`, a separate migration as T033 asks; applied to the Development database on 2026-10-21
+  at the owner's request (no shared or Production database was changed).
+- **Not done:** T045 (hand-run scenarios), and the positive results integration (T022, T026).
+
