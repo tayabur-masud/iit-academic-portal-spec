@@ -186,7 +186,7 @@ Navigation MUST make the user's current location and available destinations unde
 
 **Account dropdown:** the compact profile trigger sits at the bottom of the sidebar, below the navigation and separated by a divider. It shows the current role and opens a small menu on activation. Keep its trigger at least 44px high and keyboard operable.
 - For accounts with multiple roles, show the available roles as one labelled radio group headed "Active role"; for single-role accounts, show the role as a badge. Changing a radio switches the active role immediately.
-- Include a disabled **My Profile** item until its profile destination is implemented.
+- **My Profile** is a link row (`a.account-dropdown-item`) to the shared `/profile` page, available to every role, marked with `aria-current="page"` while it is open; choosing it closes the menu and, on mobile, the drawer.
 - Place **Sign out** as a visually compact, full-width secondary button inside the menu, while retaining a 44px minimum hit area.
 - Close the menu on Escape and outside click. Escape returns focus to the trigger. Preserve disclosure semantics; do not add a menu library solely for this pattern.
 
@@ -444,6 +444,8 @@ All classes live in `iit-academic-portal/src/styles.css` (`@layer components`); 
 **Detail section:** `section.card` containing an `h2`, then `dl.description-list`.
 
 **Destructive action:** a `.btn-danger-outline` labelled with an ellipsis ("Deactivate teacher…") opens an in-place confirmation, not a dialog: a `role="group"` labelled by a `p` that names the item and the consequence, then a `.btn-danger` ("Yes, deactivate") and a `.btn-secondary` ("Cancel"). When a button carries extra screen-reader text, wrap the visible label in one `span` (`<span>Remove<span class="sr-only"> band 3</span>…</span>`) so the button's gap does not split the label.
+
+**Shared page** (one page for every role, such as My Profile at `/profile`): a route directly under the shell, listed in `SHARED_PAGES` (`core/auth/auth.models.ts`) so a role switch stays on it, and a component that reloads when `AuthSession.activeRole()` changes, clearing the previous role's view first. It follows the detail-section recipe: `.page-header`, then `section.card.max-w-3xl` cards with a `dl.description-list` each; a value that is not recorded reads "Not recorded" in secondary text, and a missing record is an `.empty-state`.
 
 **Placeholder page** (a module not yet delivered): a `.page-header` with the module name, then an `.empty-state` with an outline icon.
 
