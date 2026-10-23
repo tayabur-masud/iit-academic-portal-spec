@@ -89,3 +89,29 @@ Headless Chrome against the running API and Angular dev server, signed in with t
 | Remaining T016 browser and screen-reader walkthrough | Not completed: the browser is unauthenticated, and the seeded Teacher/Student accounts have no profiles. No credentials were supplied for signing in or creating the test profiles. A screen-reader pass also remains outstanding. |
 
 Still to check by hand: scenarios 2 to 4 with accounts that have Teacher and Student profiles, and a screen reader pass.
+
+### Addendum: account name in the menu (2026-10-23)
+
+| Check | Result |
+|---|---|
+| `dotnet test ... --filter FullyQualifiedName~MyProfileTests` | 14 passed (2 new: name on sign-in, current session, and role switch; fallbacks and a profile added later) |
+| `dotnet test tests/IitAcademicPortal.Api.Tests` | 1,136 passed, 0 failed, 99 skipped (PostgreSQL-only) |
+| `npm test -- --watch=false` | 32 files, 383 tests passed |
+| `npm run build` | Succeeds; initial bundle 447.60 kB |
+| Browser (headless Chrome, running API, seeded accounts) | `admin@iit.test` shows "Mohammad Selim Mia" with "MM", also after a reload and in the dark theme; `student.personal@example.test` and `teacher.coordinator@iit.test`, which have no profiles, show their email (cut with an ellipsis, full email as a tooltip) and its first letter; after a role switch the role line updates; no console errors. A switch between two roles with different profile names was covered by the API and shell tests only. |
+
+### Addendum: account menu in the header, theme in the sidebar (2026-10-23)
+
+| Check | Result |
+|---|---|
+| `npm test -- --watch=false` | 32 files, 383 tests passed |
+| `npm run build` | Succeeds; initial bundle 448.75 kB |
+| Browser (headless Chrome against the running API and dev server, seeded accounts) | At 1280px the header reads "Welcome, Mohammad Selim Mia / Role: Admin" beside "MM", the menu opens downward under it, and the labelled Theme switch sits at the bottom of the sidebar, in light and dark. At 375px the header shows only the avatar; the open menu starts with "Welcome, Mohammad Selim Mia", and the Theme switch is at the bottom of the menu drawer. Accounts without a profile read "Welcome, <email>"; the role line follows a role switch. No console errors and no horizontal page overflow. |
+
+### Addendum: role under the name for multi-role accounts only (2026-10-23)
+
+`npm test -- --watch=false`: 32 files, 385 tests passed. `npm run build`: succeeds, initial bundle 448.84 kB. In the browser against the running app, the single-role `admin@iit.test` header reads only "Welcome, Mohammad Selim Mia" beside "MM", and the multi-role `teacher.coordinator@iit.test` reads "Welcome, teacher.coordinator@iit.test" over "Coordinator" after switching to Coordinator. No console errors.
+
+### Addendum: no role in a single-role account's menu (2026-10-23)
+
+`npm test -- --watch=false`: 32 files, 385 tests passed. `npm run build`: succeeds, initial bundle 448.59 kB. In the browser, the single-role `admin@iit.test` menu holds only My Profile and Sign out at 1280px, and the greeting, My Profile, and Sign out at 375px. No console errors.
