@@ -200,10 +200,14 @@
       },
       "SessionContext": {
         "type": "object",
-        "required": ["availableRoles", "activeRole"],
+        "required": ["availableRoles", "activeRole", "displayName"],
         "properties": {
           "availableRoles": { "type": "array", "items": { "$ref": "#/components/schemas/Role" }, "uniqueItems": true },
-          "activeRole": { "type": ["string", "null"], "enum": ["Admin", "Student", "Teacher", "Coordinator", null] }
+          "activeRole": { "type": ["string", "null"], "enum": ["Admin", "Student", "Teacher", "Coordinator", null] },
+          "displayName": {
+            "type": ["string", "null"],
+            "description": "Added by 010-my-profile. The signed-in account's own name for the account menu: the active role's profile name (Staff for Admin, Student for Student, Teacher for Teacher and Coordinator), otherwise another of its profile names (Staff, Teacher, Student), otherwise its email. Null only if the account no longer exists."
+          }
         }
       },
       "ActiveRoleRequest": {

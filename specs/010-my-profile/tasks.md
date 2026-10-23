@@ -66,6 +66,21 @@ No additional foundational work is required. Session identity/active-role claims
 - [X] T013 Run the focused API tests in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Profiles/MyProfileTests.cs`, the Angular tests in `iit-academic-portal/src/app/features/profile/my-profile.spec.ts`, `iit-academic-portal/src/app/layout/shell/shell.spec.ts`, and `iit-academic-portal/src/app/app.routes.spec.ts`, then run the service test project and `npm test -- --watch=false` plus `npm run build` from `iit-academic-portal`; record actual results in `specs/010-my-profile/quickstart.md`.
 - [X] T014 Walk through the end-to-end scenarios for Student, Teacher, Admin, and Coordinator accounts, including a multi-role role switch, a missing-profile account, Student sensitive-field exclusions, keyboard navigation, and recoverable request failure; record outcomes in `specs/010-my-profile/quickstart.md` without claiming unexecuted checks passed.
 
+## Phase 5: Addendum - Account name in the menu (FR-009)
+
+**Purpose**: Show the signed-in user's name, not "Account", on the account-menu trigger.
+
+- [X] T015 [US1] Add `displayName` to the session response (sign-in, current session, role switch) in `iit-academic-portal-service/src/IitAcademicPortal.Api/Contracts/AuthContracts.cs` and `iit-academic-portal-service/src/IitAcademicPortal.Api/Controllers/SessionsController.cs`, resolved by `MyProfileService.GetDisplayNameAsync` from one `IUserAccountStore.GetNamesAsync` read (active role's profile name, then Staff, Teacher, Student, then email).
+- [X] T016 [P] [US1] Add API tests for the name on sign-in, current session, and role switch, the fallbacks, and a profile added later in `iit-academic-portal-service/tests/IitAcademicPortal.Api.Tests/Profiles/MyProfileTests.cs`.
+- [X] T017 [US1] Show the name (shortened with an ellipsis, full name as a tooltip) and initials on the account-menu trigger in `iit-academic-portal/src/app/layout/shell/`, read through `AuthSession.displayName`; fall back to "Account" and the role letter if no name is sent.
+- [X] T018 [P] [US1] Add shell tests for the name, initials, tooltip, fallback, and role switch, and `initialsOf` unit tests, in `iit-academic-portal/src/app/layout/shell/shell.spec.ts`; update the 001 authentication contract, this feature's contract and quickstart, design-system Section 9, and both READMEs.
+
+- [X] T019 [US1] Swap the account menu and the theme choice: the menu moves to the right of the header (opening downward; avatar only on phones, with the greeting in the open menu) and reads "Welcome, <name>"; the theme choice becomes a labelled Light / Dark / System switch at the bottom of the sidebar, in `iit-academic-portal/src/app/layout/shell/` and `iit-academic-portal/src/styles.css`. Update the shell tests, design-system Sections 5.1, 9, and 18, and the frontend README.
+
+- [X] T020 [US1] Show the active role under the greeting only for multi-role accounts (single-role: screen-reader text only) in `iit-academic-portal/src/app/layout/shell/shell.html`, with shell tests for both cases; update design-system Section 9, the spec, and the frontend README.
+
+- [X] T021 [US1] Remove the role badge (and its divider) from the account menu of a single-role account, which now holds only My Profile and Sign out; multi-role accounts keep the "Active role" choice. Update the shell test, design-system Section 9, and the spec.
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

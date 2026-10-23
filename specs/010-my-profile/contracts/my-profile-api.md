@@ -42,6 +42,16 @@ Example (Admin):
 
 When `profile` is `null`, `email` and `activeRole` still identify the signed-in user's view context; no other account's details are used as fallback.
 
+## Account name in the session response
+
+Every session response (`POST /api/auth/sessions`, `GET /api/auth/sessions/current`, and `PUT /api/auth/sessions/current/active-role`) also carries `displayName` (see `specs/001-role-based-auth/contracts/authentication.openapi.json`). It is the signed-in account's own name for the account menu:
+
+1. the name on the active role's profile: Staff `name` for Admin, Student `applicantName` for Student, Teacher `displayName` for Teacher and Coordinator (the name My Profile shows);
+2. otherwise the name on another of the account's profiles, in the order Staff, Teacher, Student;
+3. otherwise the account email.
+
+It is resolved on the server in one read on each of those responses (`MyProfileService.GetDisplayNameAsync`), so it follows a role switch and a profile change, and is never stored separately. It is `null` only if the account no longer exists.
+
 ## Errors
 
 - `401`: no authenticated session.

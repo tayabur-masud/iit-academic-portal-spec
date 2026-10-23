@@ -13,6 +13,9 @@
 ### Session 2026-10-23
 
 - Q: Which personal information should a Student see on My Profile? → A: All personal details in the student profile, including guardian details and prior education; exclude internal, audit, and security data.
+- Q: The account menu shows the word "Account". What should it show instead? → A: The signed-in user's name, from the active role's profile (the same name My Profile shows), falling back to another of the account's profile names and then to the email; initials replace the role letter in the avatar.
+- Q: Where should the account menu and the theme choice sit, and how should the name read? → A: Swap them: the account menu moves to the right of the header and greets the user as "Welcome, <name>"; the theme choice moves to the bottom of the sidebar.
+- Q: Should the role be shown under the name? → A: Only for accounts with more than one role, so a multi-role user can always see the active role (001 FR-010, SC-005); a single-role account shows just the greeting, its menu has no role section (only My Profile and Sign out), and its role is only in the screen-reader text.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -35,6 +38,7 @@ As a signed-in portal user, I want to view my own account identity and role-spec
 7. **Given** a request is made by an anonymous user or a user requesting another account's data, **When** My Profile data is requested, **Then** access is denied without disclosing whether the other profile exists.
 8. **Given** profile data is loading or cannot be retrieved, **When** the page is opened, **Then** the user receives a clear loading or recoverable error state without seeing stale or unrelated account details.
 9. **Given** a user uses keyboard navigation or a supported screen size, **When** they open and read My Profile, **Then** the menu action and profile content remain operable and readable without content being obscured.
+10. **Given** a signed-in user, **When** any page is shown, **Then** the account menu at the right of the header greets them as "Welcome, <name>" (the active role's profile name, otherwise another of their profile names, otherwise their email) with their initials (and, for a multi-role account, the active role under the greeting), and after a role switch it shows the new role's profile name and role.
 
 ### Edge Cases
 
@@ -57,6 +61,7 @@ As a signed-in portal user, I want to view my own account identity and role-spec
 - **FR-006**: A missing or unavailable role profile MUST produce a clear state without revealing another role's or account's data or secrets.
 - **FR-007**: The page MUST provide clear loading and recoverable error states and MUST NOT expose credentials, credential-setup proofs, internal identifiers, audit metadata, or unrelated account information.
 - **FR-008**: The page and account-menu entry MUST be usable with keyboard navigation and assistive technology and remain readable at supported screen sizes.
+- **FR-009**: The account menu, at the right of the header, MUST greet the signed-in account by its own name ("Welcome, <name>"), resolved by the service with each session response: the active role's profile name, otherwise another of the account's profile names (Staff, Teacher, Student), otherwise the account email. It MUST NOT show another account's name, keep a separate copy of the name, or need a request beyond the session response. A long name MUST be shortened with an ellipsis and available in full as a tooltip.
 
 ### Key Entities *(include if data involved)*
 
